@@ -18,7 +18,6 @@ type User struct {
 	PasswordHash string    `json:"password_hash,"`
 	PhoneNumber  string    `json:"phone_number"`
 	Password     string    `json:"password"`
-	Geo          Geo       `json:"_geo"`
 	ProfileImage string    `json:"profile_image,"`
 	IsVerified   bool      `json:"is_verified,omitempty"`
 }

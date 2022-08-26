@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgtype"
 )
 
+type Category struct {
+	ID        int64          `json:"id"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
+	DeletedAt sql.NullTime   `json:"deleted_at"`
+	Name      string         `json:"name"`
+	Icon      sql.NullString `json:"icon"`
+}
+
 type PaymentTransactions struct {
 	ID                     int64        `json:"id"`
 	CreatedAt              time.Time    `json:"created_at"`

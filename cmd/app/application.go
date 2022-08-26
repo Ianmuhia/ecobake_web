@@ -5,6 +5,8 @@ import (
 	"ecobake/cmd/config"
 	"ecobake/cmd/internal"
 	"ecobake/internal/controllers"
+	"ecobake/internal/graph"
+	"ecobake/internal/graph/generated"
 	"ecobake/internal/services"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -12,7 +14,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/99designs/gqlgen/plugin/federation/testdata/entityresolver/generated"
 	"github.com/gorilla/websocket"
 	"github.com/rs/cors"
 	"log"
@@ -82,7 +83,7 @@ func initConfig(logger *log.Logger) (Config, error) {
 
 func StartApplication() {
 	// configure logger
-	logger := log.New(os.Stdout, "[FAINDA] [DEBUG] ", log.LstdFlags|log.Lshortfile)
+	logger := log.New(os.Stdout, "[ECOBAKE] [DEBUG] ", log.LstdFlags|log.Lshortfile)
 	conf, err := initConfig(logger)
 	if err != nil {
 		log.Println(err)
@@ -156,7 +157,8 @@ func StartApplication() {
 	}
 	natsService := services.NewNatsService(cfg)
 	searchService := services.NewSearchService(cfg, searchCli.MeiliClient)
-	paymentService := services.NewPaymentsService(cfg, pgPool)
+	categoryService := services.NewCategoriesService(pgPool, cfg)
+	//paymentService := services.NewPaymentsService(cfg, pgPool)
 
 	allServices := controllers.NewRepo(
 		mailService,
@@ -166,23 +168,54 @@ func StartApplication() {
 		userService,
 		tokenService,
 		searchService,
-		paymentService,
+		categoryService,
+		//paymentService,
 	)
 
 	r := allServices.SetupRouter()
 
 	//userService.CleanDB()
 	// Run the server
-	Run(logger, conf.Server.Port, conf.Server.Address, r)
+	Run(
+		logger,
+		conf.Server.Port,
+		conf.Server.Address,
+		r,
+		storageService,
+		tokenService,
+		natsService,
+		userService,
+		searchService,
+		categoryService,
+	)
 
 }
 
-func Run(logger *log.Logger, port string, address string, r http.Handler) {
+func Run(
+	logger *log.Logger,
+	port string,
+	address string,
+	r http.Handler,
+	storageService services.FileStorageService,
+	tokenService services.TokenService,
+	natsService services.NatsService,
+	userService services.UsersService,
+	searchService services.SearchService,
+	categoryService services.CategoriesService,
+) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	resolver := graph.NewResolver(
+		storageService,
+		natsService,
+		userService,
+		tokenService,
+		searchService,
+		categoryService,
+	)
 
 	//httpServerURL := fmt.Sprintf("%s:%s", conf.Server.Address, conf.Server.Port)
-	gsrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{}))
+	gsrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
 	// Configure WebSocket with CORS
 	gsrv.AddTransport(&transport.Websocket{
 		Upgrader: websocket.Upgrader{
@@ -228,14 +261,12 @@ func Run(logger *log.Logger, port string, address string, r http.Handler) {
 
 		}
 	}()
-
-	// Listen for the interrupt signal.
-	<-ctx.Done()
-
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", cors.AllowAll().Handler(gsrv))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", "8080")
+	// Listen for the interrupt signal.
+	<-ctx.Done()
 
 	go func() {
 		log.Fatal(http.ListenAndServe(":8080", nil))

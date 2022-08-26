@@ -6,18 +6,17 @@ create table if not exists schema_migrations
 
 
 
-
 create table if not exists users
 (
     id            bigserial primary key,
     created_at    timestamp with time zone,
     updated_at    timestamp with time zone,
     deleted_at    timestamp with time zone,
-    user_name     varchar(255)    not null unique,
-    email         varchar(100)    not null unique,
-    password_hash varchar(100)    not null,
+    user_name     varchar(255) not null unique,
+    email         varchar(100) not null unique,
+    password_hash varchar(100) not null,
     profile_image text    default '' :: text,
-    phone_number  text            not null unique,
+    phone_number  text         not null unique,
     is_verified   boolean default false,
     fts           tsvector
 );
@@ -50,7 +49,6 @@ EXECUTE FUNCTION users_fts_trigger();
 
 
 CREATE INDEX users_fts_idx ON users USING gist (fts);
-
 
 
 
@@ -99,17 +97,13 @@ create index on payment_transactions (status, id, payment_mode, phone_number) wh
 create index on payment_transactions (status, id, payment_mode, phone_number);
 
 
---
--- create table if not exists payments
--- (
---     id              bigserial primary key,
---     created_at      timestamp with time zone default current_timestamp,
---     updated_at      timestamp with time zone,
---     deleted_at      timestamp with time zone,
---     payment_txn_id  bigint not null
---         constraint fk_payment_transactions
---             references payment_transactions,
---     subscription_id bigint not null
---         constraint fk_subscription_id
---             references subscriptions
--- );
+
+create table if not exists category
+(
+    id         bigserial primary key,
+    created_at timestamp with time zone default current_timestamp,
+    updated_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    name       text not null,
+    icon       text
+);

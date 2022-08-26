@@ -39,13 +39,11 @@ type UsersService interface {
 }
 
 func (us *usersService) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
-	k := fmt.Sprintf("POINT(%v %v)", user.Geo.Lat, user.Geo.Lng)
 	var name = db.CreateUserParams{
-		PasswordHash:   user.PasswordHash,
-		UserName:       user.UserName,
-		PhoneNumber:    user.PhoneNumber,
-		Email:          user.Email,
-		StGeomfromtext: k,
+		PasswordHash: user.PasswordHash,
+		UserName:     user.UserName,
+		PhoneNumber:  user.PhoneNumber,
+		Email:        user.Email,
 	}
 	data, err := us.q.CreateUser(ctx, name)
 
@@ -58,7 +56,6 @@ func (us *usersService) CreateUser(ctx context.Context, user models.User) (*mode
 		CreatedAt:    data.CreatedAt.Time,
 		UserName:     data.UserName,
 		PhoneNumber:  data.PhoneNumber,
-		Geo:          models.Geo{Lat: data.Latitude.(float64), Lng: data.Longitude.(float64)},
 		Email:        data.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, data.ProfileImage.String),
 		IsVerified:   data.IsVerified.Bool,
@@ -77,13 +74,9 @@ func (us *usersService) GetUserByEmail(ctx context.Context, email string) (*mode
 		UserName:     user.UserName,
 		Password:     user.PasswordHash,
 		PhoneNumber:  user.PhoneNumber,
-		Geo: models.Geo{
-			Lat: user.Latitude.(float64),
-			Lng: user.Longitude.(float64),
-		},
 		Email:        user.Email,
-		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
-		IsVerified:   user.IsVerified.Bool,
+		//ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, use),
+		IsVerified: user.IsVerified.Bool,
 	}, nil
 }
 func (us *usersService) GetUnVerifiedUserByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -97,10 +90,7 @@ func (us *usersService) GetUnVerifiedUserByEmail(ctx context.Context, email stri
 		CreatedAt:   user.CreatedAt.Time,
 		UserName:    user.UserName,
 		PhoneNumber: user.PhoneNumber,
-		Geo: models.Geo{
-			Lat: user.Latitude.(float64),
-			Lng: user.Longitude.(float64),
-		},
+
 		Email:        user.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
 		IsVerified:   user.IsVerified.Bool,
@@ -119,10 +109,7 @@ func (us *usersService) GetUserByID(ctx context.Context, id int64) (*models.User
 		UpdatedAt:   user.UpdatedAt.Time,
 		UserName:    user.UserName,
 		PhoneNumber: user.PhoneNumber,
-		Geo: models.Geo{
-			Lat: user.Latitude.(float64),
-			Lng: user.Longitude.(float64),
-		},
+
 		Email:        user.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
 		IsVerified:   user.IsVerified.Bool,
@@ -149,10 +136,7 @@ func (us *usersService) GetAllUsers(ctx context.Context) (int, []*models.User, e
 			UpdatedAt: user.UpdatedAt.Time,
 			UserName:  user.UserName,
 			Email:     user.Email,
-			Geo: models.Geo{
-				Lat: user.Latitude.(float64),
-				Lng: user.Longitude.(float64),
-			},
+
 			PhoneNumber:  user.PhoneNumber,
 			ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
 			IsVerified:   user.IsVerified.Bool,
@@ -176,10 +160,10 @@ func (us *usersService) UpdateUserImage(ctx context.Context, email, imageName st
 		return new(models.User), err
 	}
 	return &models.User{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt.Time,
-		UpdatedAt:    user.UpdatedAt.Time,
-		UserName:     user.UserName,
+		//ID:           string(int64(user.ID)),
+		CreatedAt: user.CreatedAt.Time,
+		UpdatedAt: user.UpdatedAt.Time,
+		//UserName:     user.UserName,
 		PhoneNumber:  user.PhoneNumber,
 		Email:        user.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
@@ -203,13 +187,12 @@ func (us *usersService) UpdateUserStatus(ctx context.Context, email string) (*mo
 	}, nil
 }
 func (us *usersService) UpdateUserDetails(ctx context.Context, id int64, userModel *models.User) (*models.User, error) {
-	k := fmt.Sprintf("POINT(%v %v)", userModel.Geo.Lat, userModel.Geo.Lng)
+
 	d := db.UpdateUserParams{
-		UserName:       userModel.UserName,
-		Email:          userModel.Email,
-		PhoneNumber:    userModel.PhoneNumber,
-		StGeomfromtext: k,
-		ID:             id,
+		UserName:    userModel.UserName,
+		Email:       userModel.Email,
+		PhoneNumber: userModel.PhoneNumber,
+		ID:          id,
 	}
 	user, err := us.q.UpdateUser(ctx, d)
 	if err != nil {

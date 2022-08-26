@@ -15,26 +15,25 @@ INSERT INTO users (created_at,
                    user_name,
                    email,
                    phone_number,
-                   location,
+
                    password_hash,
                    profile_image)
 VALUES (current_timestamp,
+        $1,
         $2,
         $3,
+
         $4,
-        ST_GeomFromText($1, 4269),
-        $5,
-        $6)
-Returning is_verified, created_at, email, user_name, ST_X(location) AS Longitude, ST_Y(location) AS Latitude, id, updated_at, deleted_at, profile_image, phone_number
+        $5)
+Returning is_verified, created_at, email, user_name,  id, updated_at, deleted_at, profile_image, phone_number
 `
 
 type CreateUserParams struct {
-	StGeomfromtext interface{}    `json:"st_geomfromtext"`
-	UserName       string         `json:"user_name"`
-	Email          string         `json:"email"`
-	PhoneNumber    string         `json:"phone_number"`
-	PasswordHash   string         `json:"password_hash"`
-	ProfileImage   sql.NullString `json:"profile_image"`
+	UserName     string         `json:"user_name"`
+	Email        string         `json:"email"`
+	PhoneNumber  string         `json:"phone_number"`
+	PasswordHash string         `json:"password_hash"`
+	ProfileImage sql.NullString `json:"profile_image"`
 }
 
 type CreateUserRow struct {
@@ -42,8 +41,6 @@ type CreateUserRow struct {
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	Email        string         `json:"email"`
 	UserName     string         `json:"user_name"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
@@ -53,7 +50,6 @@ type CreateUserRow struct {
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*CreateUserRow, error) {
 	row := q.db.QueryRow(ctx, createUser,
-		arg.StGeomfromtext,
 		arg.UserName,
 		arg.Email,
 		arg.PhoneNumber,
@@ -66,8 +62,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (*Create
 		&i.CreatedAt,
 		&i.Email,
 		&i.UserName,
-		&i.Longitude,
-		&i.Latitude,
 		&i.ID,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -97,8 +91,6 @@ SELECT is_verified,
        id,
        updated_at,
        deleted_at,
-       ST_X(location) AS Longitude,
-       ST_Y(location) AS Latitude,
        profile_image,
        password_hash,
        phone_number
@@ -118,8 +110,6 @@ type GetUnverifiedUserByIdRow struct {
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	ProfileImage sql.NullString `json:"profile_image"`
 	PasswordHash string         `json:"password_hash"`
 	PhoneNumber  string         `json:"phone_number"`
@@ -136,8 +126,6 @@ func (q *Queries) GetUnverifiedUserById(ctx context.Context, email string) (*Get
 		&i.ID,
 		&i.UpdatedAt,
 		&i.DeletedAt,
-		&i.Longitude,
-		&i.Latitude,
 		&i.ProfileImage,
 		&i.PasswordHash,
 		&i.PhoneNumber,
@@ -151,9 +139,6 @@ SELECT is_verified,
        email,
        user_name,
        id,
-       profile_image,
-       ST_X(location) AS Longitude,
-       ST_Y(location) AS Latitude,
        password_hash,
        phone_number
 FROM "users"
@@ -164,16 +149,13 @@ LIMIT 1
 `
 
 type GetUserByEmailRow struct {
-	IsVerified   sql.NullBool   `json:"is_verified"`
-	CreatedAt    sql.NullTime   `json:"created_at"`
-	Email        string         `json:"email"`
-	UserName     string         `json:"user_name"`
-	ID           int64          `json:"id"`
-	ProfileImage sql.NullString `json:"profile_image"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
-	PasswordHash string         `json:"password_hash"`
-	PhoneNumber  string         `json:"phone_number"`
+	IsVerified   sql.NullBool `json:"is_verified"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	Email        string       `json:"email"`
+	UserName     string       `json:"user_name"`
+	ID           int64        `json:"id"`
+	PasswordHash string       `json:"password_hash"`
+	PhoneNumber  string       `json:"phone_number"`
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByEmailRow, error) {
@@ -185,9 +167,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (*GetUserByE
 		&i.Email,
 		&i.UserName,
 		&i.ID,
-		&i.ProfileImage,
-		&i.Longitude,
-		&i.Latitude,
 		&i.PasswordHash,
 		&i.PhoneNumber,
 	)
@@ -201,8 +180,6 @@ SELECT is_verified,
        user_name,
        id,
        updated_at,
-       ST_X(location) AS Longitude,
-       ST_Y(location) AS Latitude,
        deleted_at,
        profile_image,
        password_hash,
@@ -221,8 +198,6 @@ type GetUserByIdRow struct {
 	UserName     string         `json:"user_name"`
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
 	ProfileImage sql.NullString `json:"profile_image"`
 	PasswordHash string         `json:"password_hash"`
@@ -239,8 +214,6 @@ func (q *Queries) GetUserById(ctx context.Context, id int64) (*GetUserByIdRow, e
 		&i.UserName,
 		&i.ID,
 		&i.UpdatedAt,
-		&i.Longitude,
-		&i.Latitude,
 		&i.DeletedAt,
 		&i.ProfileImage,
 		&i.PasswordHash,
@@ -254,8 +227,6 @@ SELECT is_verified,
        created_at,
        email,
        user_name,
-       ST_X(location) AS Longitude,
-       ST_Y(location) AS Latitude,
        id,
        updated_at,
        deleted_at,
@@ -271,8 +242,6 @@ type ListUsersRow struct {
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	Email        string         `json:"email"`
 	UserName     string         `json:"user_name"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
@@ -295,8 +264,6 @@ func (q *Queries) ListUsers(ctx context.Context) ([]*ListUsersRow, error) {
 			&i.CreatedAt,
 			&i.Email,
 			&i.UserName,
-			&i.Longitude,
-			&i.Latitude,
 			&i.ID,
 			&i.UpdatedAt,
 			&i.DeletedAt,
@@ -316,22 +283,21 @@ func (q *Queries) ListUsers(ctx context.Context) ([]*ListUsersRow, error) {
 
 const updateUser = `-- name: UpdateUser :one
 UPDATE "users"
-SET user_name    = $2,
-    email        = $3,
-    location     = ST_GeomFromText($1, 4269),
-    phone_number = $4
-WHERE id = $5
+SET user_name    = $1,
+    email        = $2,
+
+    phone_number = $3
+WHERE id = $4
   AND "users"."deleted_at" IS NULL
 
-Returning is_verified , created_at , email , user_name , ST_X(location) AS Longitude , ST_Y(location) AS Latitude , id , updated_at , deleted_at , profile_image , phone_number
+Returning is_verified , created_at , email , user_name , id , updated_at , deleted_at , profile_image , phone_number
 `
 
 type UpdateUserParams struct {
-	StGeomfromtext interface{} `json:"st_geomfromtext"`
-	UserName       string      `json:"user_name"`
-	Email          string      `json:"email"`
-	PhoneNumber    string      `json:"phone_number"`
-	ID             int64       `json:"id"`
+	UserName    string `json:"user_name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+	ID          int64  `json:"id"`
 }
 
 type UpdateUserRow struct {
@@ -339,8 +305,6 @@ type UpdateUserRow struct {
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	Email        string         `json:"email"`
 	UserName     string         `json:"user_name"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
@@ -350,7 +314,6 @@ type UpdateUserRow struct {
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*UpdateUserRow, error) {
 	row := q.db.QueryRow(ctx, updateUser,
-		arg.StGeomfromtext,
 		arg.UserName,
 		arg.Email,
 		arg.PhoneNumber,
@@ -362,8 +325,6 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (*Update
 		&i.CreatedAt,
 		&i.Email,
 		&i.UserName,
-		&i.Longitude,
-		&i.Latitude,
 		&i.ID,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -395,7 +356,7 @@ UPDATE "users"
 SET profile_image = $1
 WHERE email = $2
   and users.deleted_at is null
-Returning is_verified, created_at, email, user_name, ST_X(location) AS Longitude, ST_Y(location) AS Latitude, id, updated_at, deleted_at, profile_image, phone_number
+Returning is_verified, created_at, email, user_name id, updated_at, deleted_at, profile_image, phone_number
 `
 
 type UpdateUserProfileImageParams struct {
@@ -407,10 +368,7 @@ type UpdateUserProfileImageRow struct {
 	IsVerified   sql.NullBool   `json:"is_verified"`
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	Email        string         `json:"email"`
-	UserName     string         `json:"user_name"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
-	ID           int64          `json:"id"`
+	ID           string         `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
 	ProfileImage sql.NullString `json:"profile_image"`
@@ -424,9 +382,6 @@ func (q *Queries) UpdateUserProfileImage(ctx context.Context, arg UpdateUserProf
 		&i.IsVerified,
 		&i.CreatedAt,
 		&i.Email,
-		&i.UserName,
-		&i.Longitude,
-		&i.Latitude,
 		&i.ID,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -441,7 +396,7 @@ UPDATE "users"
 SET is_verified = true
 WHERE email = $1
   and users.deleted_at is null
-Returning is_verified, created_at, email, user_name, ST_X(location) AS Longitude, ST_Y(location) AS Latitude, id, updated_at, deleted_at, profile_image, phone_number
+Returning is_verified, created_at, email, user_name, id, updated_at, deleted_at, profile_image, phone_number
 `
 
 type UpdateUserStatusRow struct {
@@ -449,8 +404,6 @@ type UpdateUserStatusRow struct {
 	CreatedAt    sql.NullTime   `json:"created_at"`
 	Email        string         `json:"email"`
 	UserName     string         `json:"user_name"`
-	Longitude    interface{}    `json:"longitude"`
-	Latitude     interface{}    `json:"latitude"`
 	ID           int64          `json:"id"`
 	UpdatedAt    sql.NullTime   `json:"updated_at"`
 	DeletedAt    sql.NullTime   `json:"deleted_at"`
@@ -466,8 +419,6 @@ func (q *Queries) UpdateUserStatus(ctx context.Context, email string) (*UpdateUs
 		&i.CreatedAt,
 		&i.Email,
 		&i.UserName,
-		&i.Longitude,
-		&i.Latitude,
 		&i.ID,
 		&i.UpdatedAt,
 		&i.DeletedAt,

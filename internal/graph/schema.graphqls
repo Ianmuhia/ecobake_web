@@ -3,7 +3,138 @@
 # https://gqlgen.com/getting-started/
 
 type Query {
-    users: [User!]!
+    users: Users!
+    categories: Categories
+}
+type Mutation {
+    createUser(input:NewUser!):AccountRegister
+    createCategory(input:CreateCategory!):Categories
+
+    # Create JWT token.
+    tokenCreate(
+        # Email of a user.
+        email: String!
+        # Password of a user.
+        password: String!
+    ): CreateToken
+    # Refresh JWT token. Mutation tries to take refreshToken from the input.If it
+    # fails it will try to take refreshToken from the http-only cookie
+    # -refreshToken. csrfToken is required when refreshToken is provided as a cookie.
+    tokenRefresh(
+        # CSRF token required to refresh token. This argument is required when refreshToken is provided as a cookie.
+        csrfToken: String
+        # Refresh token.
+        refreshToken: String
+    ): RefreshToken
+    # Verify JWT token.
+    tokenVerify(
+        # JWT token to validate.
+        token: String!
+    ): VerifyToken
+    # Deactivate all JWT tokens of the currently authenticated user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    tokensDeactivateAll: DeactivateAllUserTokens
+    # Prepare external authentication url for user by custom plugin.
+
+    # Sends an email with the account password modification link.
+    requestPasswordReset(
+        # Slug of a channel which will be used for notify user. Optional when only one channel exists.
+        channel: String
+        # Email of the user that will be used for password recovery.
+        email: String!
+        # URL of a view where users should be redirected to reset the password. URL in RFC 1808 format.
+        redirectUrl: String!
+    ): RequestPasswordReset
+    # Confirm user account with token sent by email during registration.
+    confirmAccount(
+        # E-mail of the user performing account confirmation.
+        email: String!
+        # A one-time token required to confirm the account.
+        token: String!
+    ): ConfirmAccount
+    # Sets the user's password from the token sent by email using the RequestPasswordReset mutation.
+    setPassword(
+        # Email of a user.
+        email: String!
+        # Password of a user.
+        password: String!
+        # A one-time token required to set the password.
+        token: String!
+    ): SetPassword
+    # Change the password of the logged in user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    passwordChange(
+        # New user password.
+        newPassword: String!
+        # Current user password.
+        oldPassword: String!
+    ): PasswordChange
+    # Request email change of the logged in user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    requestEmailChange(
+        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
+        channel: String
+        # New user email.
+        newEmail: String!
+        # User password.
+        password: String!
+        # URL of a view where users should be redirected to update the email address. URL in RFC 1808 format.
+        redirectUrl: String!
+    ): RequestEmailChange
+    # Confirm the email change of the logged-in user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    confirmEmailChange(
+        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
+        channel: String
+        # A one-time token required to change the email.
+        token: String!
+    ): ConfirmEmailChange
+
+    # Register a new user.
+    accountRegister(
+        # Fields required to create a user.
+        input: AccountRegisterInput!
+    ): AccountRegister
+    # Updates the account of the logged-in user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    accountUpdate(
+        # Fields required to update the account of the logged-in user.
+        input: AccountInput!
+    ): AccountUpdate
+    # Sends an email with the account removal link for the logged-in user.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    accountRequestDeletion(
+        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
+        channel: String
+        # URL of a view where users should be redirected to delete their account. URL in RFC 1808 format.
+        redirectUrl: String!
+    ): AccountRequestDeletion
+    # Remove user account.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_USER.
+    accountDelete(
+        # A one-time token required to remove account. Sent by email using AccountRequestDeletion mutation.
+        token: String!
+    ): AccountDelete
+
+    # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
+    userAvatarUpdate(
+        # Represents an image file in a multipart request.
+        image: Upload!
+    ): UserAvatarUpdate
+    # Deletes a user avatar. Only for staff members.
+    #
+    # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
+    userAvatarDelete: UserAvatarDelete
+    # Activate or deactivate users.
+    #
+
 }
 
 
@@ -15,17 +146,45 @@ interface Node {
     id: ID!
 }
 type User {
-    id: ID!
-    name: String!
+    id: Int!
+    username: String!
     email: String!
-    workplace: String!
-    first_name: String!
-    last_name: String!
-    school: String!
-    phone: String!
+    phone_number: String!
     profile_image: String!
     created_at: String!
     updated_at: String!
+
+}
+
+type Category {
+    id: Int!
+    name: String!
+    icon: String!
+    created_at: String!
+    updated_at: String!
+
+}
+
+type Categories {
+    categories :[Category]
+    errors: [ListEntityErrorCode!]!
+
+}
+
+input CreateCategory {
+    name: String!
+    icon: String!
+}
+
+type Users {
+    users : [User]
+    errors: [ListEntityErrorCode!]!
+
+}
+
+type AccountRegisterResponse {
+    errors: [AccountError!]!
+    user: User
 }
 
 
@@ -50,6 +209,7 @@ input LoginUser {
 
 
 
+
 # Remove user account.
 #
 # Requires one of the following permissions: AUTHENTICATED_USER.
@@ -70,10 +230,6 @@ type AccountError {
 }
 # Sends an email with the account password modification link.
 type RequestPasswordReset {
-    accountErrors: [AccountError!]!
-    @deprecated(
-        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-    )
     errors: [AccountError!]!
 }
 
@@ -175,10 +331,6 @@ type CreateToken {
     csrfToken: String
     # A user instance.
     user: User
-    accountErrors: [AccountError!]!
-    @deprecated(
-        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-    )
     errors: [AccountError!]!
 }
 
@@ -246,12 +398,16 @@ type PasswordChange {
 
     errors: [AccountError!]!
 }
+enum  ListEntityErrorCode {
+    GRAPHQL_ERROR
+    NOT_FOUND
+}
 
 # An enumeration.
 enum CheckoutErrorCode {
     BILLING_ADDRESS_NOT_SET
     CHECKOUT_NOT_FULLY_PAID
-    GRAPHQL_ERROR
+
     PRODUCT_NOT_PUBLISHED
     PRODUCT_UNAVAILABLE_FOR_PURCHASE
     INSUFFICIENT_STOCK
@@ -285,10 +441,6 @@ type RefreshToken {
     token: String
     # A user instance.
     user: User
-    accountErrors: [AccountError!]!
-    @deprecated(
-        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-    )
     errors: [AccountError!]!
 }
 
@@ -339,12 +491,7 @@ type RequestEmailChange {
     errors: [AccountError!]!
 }
 
-# Sends an email with the account password modification link.
-type RequestPasswordReset {
-    accountErrors: [AccountError!]!
 
-    errors: [AccountError!]!
-}
 
 # Create a user avatar. Only for staff members. This mutation must be sent as a
 # `multipart` request. More detailed specs of the upload format can be found here:
@@ -388,7 +535,7 @@ enum UploadErrorCode {
 }
 
 
-    type File {
+type File {
     # The URL of the file.
     url: String!
     # Content type of the file.
@@ -405,412 +552,10 @@ type FileUpload {
     errors: [UploadError!]!
 }
 
-type Mutation {
-    createUser(input:NewUser!):User!
-    login(input:LoginUser!):LoginResp!
 
 
-    # Requires one of the following permissions: MANAGE_PRODUCTS.
-    categoryCreate(
-        # Fields required to create a category.
-        input: CategoryInput!
-        # ID of the parent category. If empty, category will be top level category.
-        parent: ID
-    ): CategoryCreate
-    # Deletes a category.
-    #
-    # Requires one of the following permissions: MANAGE_PRODUCTS.
-    categoryDelete(
-        # ID of a category to delete.
-        id: ID!
-    ): CategoryDelete
-    # Deletes categories.
-    #
-    # Requires one of the following permissions: MANAGE_PRODUCTS.
-    categoryBulkDelete(
-        # List of category IDs to delete.
-        ids: [ID!]!
-    ): CategoryBulkDelete
-    # Updates a category.
-    #
-    # Requires one of the following permissions: MANAGE_PRODUCTS.
-    categoryUpdate(
-        # ID of a category to update.
-        id: ID!
-        # Fields required to update a category.
-        input: CategoryInput!
-    ): CategoryUpdate
-
-    # Create JWT token.
-    tokenCreate(
-        # Email of a user.
-        email: String!
-        # Password of a user.
-        password: String!
-    ): CreateToken
-    # Refresh JWT token. Mutation tries to take refreshToken from the input.If it
-    # fails it will try to take refreshToken from the http-only cookie
-    # -refreshToken. csrfToken is required when refreshToken is provided as a cookie.
-    tokenRefresh(
-        # CSRF token required to refresh token. This argument is required when refreshToken is provided as a cookie.
-        csrfToken: String
-        # Refresh token.
-        refreshToken: String
-    ): RefreshToken
-    # Verify JWT token.
-    tokenVerify(
-        # JWT token to validate.
-        token: String!
-    ): VerifyToken
-    # Deactivate all JWT tokens of the currently authenticated user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    tokensDeactivateAll: DeactivateAllUserTokens
-    # Prepare external authentication url for user by custom plugin.
-
-    # Sends an email with the account password modification link.
-    requestPasswordReset(
-        # Slug of a channel which will be used for notify user. Optional when only one channel exists.
-        channel: String
-        # Email of the user that will be used for password recovery.
-        email: String!
-        # URL of a view where users should be redirected to reset the password. URL in RFC 1808 format.
-        redirectUrl: String!
-    ): RequestPasswordReset
-    # Confirm user account with token sent by email during registration.
-    confirmAccount(
-        # E-mail of the user performing account confirmation.
-        email: String!
-        # A one-time token required to confirm the account.
-        token: String!
-    ): ConfirmAccount
-    # Sets the user's password from the token sent by email using the RequestPasswordReset mutation.
-    setPassword(
-        # Email of a user.
-        email: String!
-        # Password of a user.
-        password: String!
-        # A one-time token required to set the password.
-        token: String!
-    ): SetPassword
-    # Change the password of the logged in user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    passwordChange(
-        # New user password.
-        newPassword: String!
-        # Current user password.
-        oldPassword: String!
-    ): PasswordChange
-    # Request email change of the logged in user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    requestEmailChange(
-        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
-        channel: String
-        # New user email.
-        newEmail: String!
-        # User password.
-        password: String!
-        # URL of a view where users should be redirected to update the email address. URL in RFC 1808 format.
-        redirectUrl: String!
-    ): RequestEmailChange
-    # Confirm the email change of the logged-in user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    confirmEmailChange(
-        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
-        channel: String
-        # A one-time token required to change the email.
-        token: String!
-    ): ConfirmEmailChange
-    # Create a new address for the customer.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    accountAddressCreate(
-        # Fields required to create address.
-        input: AddressInput!
-        # A type of address. If provided, the new address will be automatically
-        # assigned as the customer's default address of that type.
-        type: AddressTypeEnum
-    ): AccountAddressCreate
-    # Updates an address of the logged-in user. Requires one of the following permissions: MANAGE_USERS, IS_OWNER.
-    accountAddressUpdate(
-        # ID of the address to update.
-        id: ID!
-        # Fields required to update the address.
-        input: AddressInput!
-    ): AccountAddressUpdate
-    # Delete an address of the logged-in user. Requires one of the following permissions: MANAGE_USERS, IS_OWNER.
-    accountAddressDelete(
-        # ID of the address to delete.
-        id: ID!
-    ): AccountAddressDelete
-    # Sets a default address for the authenticated user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    accountSetDefaultAddress(
-        # ID of the address to set as default.
-        id: ID!
-        # The type of address.
-        type: AddressTypeEnum!
-    ): AccountSetDefaultAddress
-    # Register a new user.
-    accountRegister(
-        # Fields required to create a user.
-        input: AccountRegisterInput!
-    ): AccountRegister
-    # Updates the account of the logged-in user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    accountUpdate(
-        # Fields required to update the account of the logged-in user.
-        input: AccountInput!
-    ): AccountUpdate
-    # Sends an email with the account removal link for the logged-in user.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    accountRequestDeletion(
-        # Slug of a channel which will be used to notify users. Optional when only one channel exists.
-        channel: String
-        # URL of a view where users should be redirected to delete their account. URL in RFC 1808 format.
-        redirectUrl: String!
-    ): AccountRequestDeletion
-    # Remove user account.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_USER.
-    accountDelete(
-        # A one-time token required to remove account. Sent by email using AccountRequestDeletion mutation.
-        token: String!
-    ): AccountDelete
-    # Creates user address.
-    #
-    # Requires one of the following permissions: MANAGE_USERS.
-    addressCreate(
-        # Fields required to create address.
-        input: AddressInput!
-        # ID of a user to create address for.
-        userId: ID!
-    ): AddressCreate
-    # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
-    userAvatarUpdate(
-        # Represents an image file in a multipart request.
-        image: Upload!
-    ): UserAvatarUpdate
-    # Deletes a user avatar. Only for staff members.
-    #
-    # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
-    userAvatarDelete: UserAvatarDelete
-    # Activate or deactivate users.
-    #
-
-}
-#
-## Creates a ready to send invoice.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceCreate {
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
-#
-#input InvoiceCreateInput {
-#    # Invoice number.
-#    number: String!
-#    # URL of an invoice to download.
-#    url: String!
-#}
-#
-## Deletes an invoice.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceDelete {
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
-#
-## Event sent when invoice is deleted.
-##
-## Added in Saleor 3.2.
-##
-## Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#type InvoiceDeleted implements Event {
-#    # Time of the event.
-#    issuedAt: DateTime
-#    # Saleor version that triggered the event.
-#    version: String
-#    # The user or application that triggered the event.
-#    issuingPrincipal: IssuingPrincipal
-#    # The application receiving the webhook.
-#    recipient: App
-#    # The invoice the event relates to.
-#    invoice: Invoice
-#}
-#
-#type InvoiceError {
-#    # Name of a field that caused the error. A value of `null` indicates that the
-#    # error isn't associated with a particular field.
-#    field: String
-#    # The error message.
-#    message: String
-#    # The error code.
-#    code: InvoiceErrorCode!
-#}
-#
-## An enumeration.
-#enum InvoiceErrorCode {
-#    REQUIRED
-#    NOT_READY
-#    URL_NOT_SET
-#    EMAIL_NOT_SET
-#    NUMBER_NOT_SET
-#    NOT_FOUND
-#    INVALID_STATUS
-#    NO_INVOICE_PLUGIN
-#}
-#
-## Request an invoice for the order using plugin.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceRequest {
-#    # Order related to an invoice.
-#    order: Order
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
-#
-## Requests deletion of an invoice.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceRequestDelete {
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
-#
-## Event sent when invoice is requested.
-##
-## Added in Saleor 3.2.
-##
-## Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#type InvoiceRequested implements Event {
-#    # Time of the event.
-#    issuedAt: DateTime
-#    # Saleor version that triggered the event.
-#    version: String
-#    # The user or application that triggered the event.
-#    issuingPrincipal: IssuingPrincipal
-#    # The application receiving the webhook.
-#    recipient: App
-#    # The invoice the event relates to.
-#    invoice: Invoice
-#}
 
 scalar DateTime
 
-
-## Represents an Invoice.
-#type Invoice implements ObjectWithMetadata & Job & Node {
-#    # List of private metadata items. Requires staff permissions to access.
-#    privateMetadata: [MetadataItem!]!
-#    # A single key from private metadata. Requires staff permissions to access.
-#    #
-#    # Tip: Use GraphQL aliases to fetch multiple keys.
-#    #
-#    # Added in Saleor 3.3.
-#    #
-#    # Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#    privateMetafield(key: String!): String
-#    # Private metadata. Requires staff permissions to access. Use `keys` to control
-#    # which fields you want to include. The default is to include everything.
-#    #
-#    # Added in Saleor 3.3.
-#    #
-#    # Note: this API is currently in Feature Preview and can be subject to changes at later point.
-##    privateMetafields(keys: [String!]): Metadata
-##    # List of public metadata items. Can be accessed without permissions.
-##    metadata: [MetadataItem!]!
-#    # A single key from public metadata.
-#    #
-#    # Tip: Use GraphQL aliases to fetch multiple keys.
-#    #
-#    # Added in Saleor 3.3.
-#    #
-#    # Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#    metafield(key: String!): String
-#    # Public metadata. Use `keys` to control which fields you want to include. The default is to include everything.
-#    #
-#    # Added in Saleor 3.3.
-#    #
-#    # Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#    metafields(keys: [String!]): Metadata
-#    # Job status.
-#    status: JobStatusEnum!
-#    createdAt: DateTime!
-#    updatedAt: DateTime!
-#    message: String
-#    # The ID of the object.
-#    id: ID!
-#    number: String
-#    externalUrl: String
-#    # URL to download an invoice.
-#    url: String
-#}
-## Send an invoice notification to the customer.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceSendNotification {
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
-#
-## Event sent when invoice is sent.
-##
-## Added in Saleor 3.2.
-##
-## Note: this API is currently in Feature Preview and can be subject to changes at later point.
-#type InvoiceSent implements Event {
-#    # Time of the event.
-#    issuedAt: DateTime
-#    # Saleor version that triggered the event.
-#    version: String
-#    # The user or application that triggered the event.
-#    issuingPrincipal: IssuingPrincipal
-#    # The application receiving the webhook.
-#    recipient: App
-#    # The invoice the event relates to.
-#    invoice: Invoice
-#}
-#
-## Updates an invoice.
-##
-## Requires one of the following permissions: MANAGE_ORDERS.
-#type InvoiceUpdate {
-#    invoiceErrors: [InvoiceError!]!
-#    @deprecated(
-#        reason: "This field will be removed in Saleor 4.0. Use `errors` field instead."
-#    )
-#    errors: [InvoiceError!]!
-#    invoice: Invoice
-#}
 
 

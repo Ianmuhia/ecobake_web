@@ -9,18 +9,22 @@ import (
 )
 
 type Querier interface {
+	CreateCategory(ctx context.Context, arg CreateCategoryParams) error
 	//TODO:Add indexing for paymentransactions
 	CreatePaymentTransaction(ctx context.Context, arg CreatePaymentTransactionParams) (int64, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (*CreateUserRow, error)
+	DeleteCategory(ctx context.Context, id int64) error
 	DeleteUser(ctx context.Context, id int64) error
 	GetPaymentTransactionByID(ctx context.Context, id int64) (*GetPaymentTransactionByIDRow, error)
 	GetTotalPayments(ctx context.Context) (interface{}, error)
 	GetUnverifiedUserById(ctx context.Context, email string) (*GetUnverifiedUserByIdRow, error)
 	GetUserByEmail(ctx context.Context, email string) (*GetUserByEmailRow, error)
 	GetUserById(ctx context.Context, id int64) (*GetUserByIdRow, error)
+	ListAllCategories(ctx context.Context) ([]*Category, error)
 	ListPaymentTransactions(ctx context.Context) ([]*ListPaymentTransactionsRow, error)
 	ListPaymentTransactionsByUser(ctx context.Context, phoneNumber string) ([]*ListPaymentTransactionsByUserRow, error)
 	ListUsers(ctx context.Context) ([]*ListUsersRow, error)
+	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (*UpdateUserRow, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfileImage(ctx context.Context, arg UpdateUserProfileImageParams) (*UpdateUserProfileImageRow, error)

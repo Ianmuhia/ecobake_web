@@ -7,15 +7,17 @@ import (
 
 // Repository is the repository type.
 type Repository struct {
-	mailService    services.MailService
-	app            *config.AppConfig
-	storageService services.FileStorageService
-	natService     services.NatsService
-	userService    services.UsersService
-	tokenService   services.TokenService
-	natsService    services.NatsService
-	searchService  services.SearchService
-	paymentService services.PaymentsService
+	mailService     services.MailService
+	app             *config.AppConfig
+	storageService  services.FileStorageService
+	natService      services.NatsService
+	userService     services.UsersService
+	tokenService    services.TokenService
+	natsService     services.NatsService
+	searchService   services.SearchService
+	CategoryService services.CategoriesService
+
+	//paymentService services.PaymentsService
 }
 
 // NewRepo creates a new repository.
@@ -27,18 +29,21 @@ func NewRepo(
 	userService services.UsersService,
 	tokenService services.TokenService,
 	searchService services.SearchService,
-	paymentService services.PaymentsService,
+	categoryService services.CategoriesService,
+
+	//paymentService services.PaymentsService,
 
 ) *Repository {
 	return &Repository{
-		mailService:    mailService,
-		app:            a,
-		storageService: storageService,
-		natService:     natService,
-		userService:    userService,
-		tokenService:   tokenService,
-		natsService:    natService,
-		searchService:  searchService,
-		paymentService: paymentService,
+		mailService:     mailService,
+		app:             a,
+		storageService:  storageService,
+		natService:      natService,
+		userService:     userService,
+		tokenService:    tokenService,
+		natsService:     natService,
+		searchService:   searchService,
+		CategoryService: categoryService,
+		//paymentService: paymentService,
 	}
 }

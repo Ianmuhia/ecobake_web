@@ -15,7 +15,7 @@ package controllers
 import (
 	"context"
 	"ecobake/internal/graph"
-	"ecobake/internal/models"
+	"ecobake/internal/graph/generated"
 	"ecobake/pkg/resterrors"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -75,9 +75,12 @@ func (r *Repository) graphqlHandler() gin.HandlerFunc {
 	// NewExecutableSchema and Config are in the generated.go file
 	// Resolver is in the resolver.go file
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
-		ServiceProvider: r.serviceProvider,
-		FsStorage:       r.storageService,
-		NewUser:         make(chan *models.User),
+		StorageService:  r.storageService,
+		NatService:      r.natService,
+		UserService:     r.userService,
+		TokenService:    r.tokenService,
+		SearchService:   r.searchService,
+		CategoryService: r.CategoryService,
 	}}))
 	// Configure WebSocket with CORS
 	h.AddTransport(&transport.Websocket{
@@ -178,7 +181,7 @@ func (r *Repository) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		accessToken := fields[1]
-		payload, err := r.serviceProvider.VerifyToken(accessToken)
+		payload, err := r.tokenService.VerifyToken(accessToken)
 
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("invalid authorization header format"))

@@ -45,15 +45,18 @@ type AccountRegisterInput struct {
 	Channel     *string `json:"channel"`
 }
 
+type AccountRegisterResponse struct {
+	Errors []*AccountError `json:"errors"`
+	User   *models.User    `json:"user"`
+}
+
 type AccountRequestDeletion struct {
-	AccountErrors []*AccountError `json:"accountErrors"`
-	Errors        []*AccountError `json:"errors"`
+	Errors []*AccountError `json:"errors"`
 }
 
 type AccountUpdate struct {
-	AccountErrors []*AccountError `json:"accountErrors"`
-	Errors        []*AccountError `json:"errors"`
-	User          *models.User    `json:"user"`
+	Errors []*AccountError `json:"errors"`
+	User   *models.User    `json:"user"`
 }
 
 type Address struct {
@@ -102,10 +105,29 @@ type CreateToken struct {
 	Errors        []*AccountError `json:"errors"`
 }
 
+type DeactivateAllUserTokens struct {
+	Errors []*AccountError `json:"errors"`
+}
+
+type File struct {
+	URL         string  `json:"url"`
+	ContentType *string `json:"contentType"`
+}
+
+type FileUpload struct {
+	UploadedFile *File          `json:"uploadedFile"`
+	Errors       []*UploadError `json:"errors"`
+}
+
+type Image struct {
+	URL string  `json:"url"`
+	Alt *string `json:"alt"`
+}
+
 type LoginResp struct {
-	User    *models.User `json:"user"`
-	Refresh *string      `json:"refresh"`
-	Access  *string      `json:"access"`
+	User    models.User `json:"user"`
+	Refresh *string     `json:"refresh"`
+	Access  *string     `json:"access"`
 }
 
 type LoginUser struct {
@@ -117,6 +139,59 @@ type NewUser struct {
 	Password    string `json:"password"`
 	PhoneNumber string `json:"phone_number"`
 	Email       string `json:"email"`
+}
+
+type PasswordChange struct {
+	User          *models.User    `json:"user"`
+	AccountErrors []*AccountError `json:"accountErrors"`
+	Errors        []*AccountError `json:"errors"`
+}
+
+type RefreshToken struct {
+	Token         *string         `json:"token"`
+	User          *models.User    `json:"user"`
+	AccountErrors []*AccountError `json:"accountErrors"`
+	Errors        []*AccountError `json:"errors"`
+}
+
+type RequestEmailChange struct {
+	User   *models.User    `json:"user"`
+	Errors []*AccountError `json:"errors"`
+}
+
+type RequestPasswordReset struct {
+	Errors []*AccountError `json:"errors"`
+}
+
+type SetPassword struct {
+	Token        *string         `json:"token"`
+	RefreshToken *string         `json:"refreshToken"`
+	CsrfToken    *string         `json:"csrfToken"`
+	User         *models.User    `json:"user"`
+	Errors       []*AccountError `json:"errors"`
+}
+
+type UploadError struct {
+	Field   *string         `json:"field"`
+	Message *string         `json:"message"`
+	Code    UploadErrorCode `json:"code"`
+}
+
+type UserAvatarDelete struct {
+	User   *models.User    `json:"user"`
+	Errors []*AccountError `json:"errors"`
+}
+
+type UserAvatarUpdate struct {
+	User   *models.User    `json:"user"`
+	Errors []*AccountError `json:"errors"`
+}
+
+type VerifyToken struct {
+	User    *models.User    `json:"user"`
+	IsValid bool            `json:"isValid"`
+	Payload *string         `json:"payload"`
+	Errors  []*AccountError `json:"errors"`
 }
 
 type AccountErrorCode string
@@ -310,5 +385,44 @@ func (e *CheckoutErrorCode) UnmarshalGQL(v interface{}) error {
 }
 
 func (e CheckoutErrorCode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type UploadErrorCode string
+
+const (
+	UploadErrorCodeGraphqlError UploadErrorCode = "GRAPHQL_ERROR"
+)
+
+var AllUploadErrorCode = []UploadErrorCode{
+	UploadErrorCodeGraphqlError,
+}
+
+func (e UploadErrorCode) IsValid() bool {
+	switch e {
+	case UploadErrorCodeGraphqlError:
+		return true
+	}
+	return false
+}
+
+func (e UploadErrorCode) String() string {
+	return string(e)
+}
+
+func (e *UploadErrorCode) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UploadErrorCode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UploadErrorCode", str)
+	}
+	return nil
+}
+
+func (e UploadErrorCode) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
