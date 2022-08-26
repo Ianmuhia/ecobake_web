@@ -1,0 +1,367 @@
+### register
+POST {{url}}/api/v1/auth/users/register/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "password": "password",
+  "password_confirm": "password",
+  "email": "wiser@gmail.com",
+  "phone_number": "0795433822"
+}
+
+### login
+POST {{url}}/api/v1/auth/users/login/
+Accept: application/json
+Content-Type: application/json
+
+//https://programming.guide/go/format-parse-string-time-date-example.html
+
+{
+  "password": "password",
+  "email": "wiser@gmail.com"
+}
+> {%
+    client.log(response.toString())
+    client.global.set("auth_token", response.body.data.access_token);
+    client.log(client.global.get("auth_token"))
+%}
+
+
+
+
+###
+GET {{url}}/api/v1/protected/users/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+
+### get other  images
+GET {{url}}/api/v1/protected/images/2/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+### upload other  images
+POST {{url}}/api/v1/protected/images/2
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="name"; filename="image.png"
+
+// The 'input.txt' file will be uploaded
+< ./image.png
+--WebAppBoundary---
+
+### get items
+GET {{url}}/api/v1/protected/items/1
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+###
+POST {{url}}/api/v1/protected/items/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "perfect_for": "men",
+  "url": "http://192.168.0.102:8090/api/v1/protected/items/",
+  "location": "Nairobi",
+  "price": 20000,
+  "description": "Shoes",
+  "seller_phone": "12345678",
+  "get_by": "2022-07-16T15:06:47.252296184+03:00",
+  "private": false,
+  "completed": false,
+  "name": "New kicks",
+  "category_id": 1
+}
+
+
+
+### Request with client messages
+// It is possible to specify client messages in request body. Use '===' to separate messages.
+// Add '=== wait-for-server' above a message to send it after a server response is received.
+// To wait for N responses, add '=== wait-for-server' N times.
+WEBSOCKET ws://{{url}}/ws
+Content-Type: text/plain // We use it for highlighting
+
+
+ping
+
+
+
+
+
+
+### Send a form with the text and file fields
+POST {{url}}/api/v1/protected/items/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="perfect_for"
+
+men
+--WebAppBoundary
+Content-Disposition: form-data; name="url"
+
+https://www.youtube.com/watch?v=zQ5eijfpuu8
+--WebAppBoundary
+Content-Disposition: form-data; name="location"
+
+Nairobi
+--WebAppBoundary
+Content-Disposition: form-data; name="price"
+
+120
+
+--WebAppBoundary
+Content-Disposition: form-data; name="gift_id"
+
+9
+--WebAppBoundary
+Content-Disposition: form-data; name="description"
+
+If you grow or become with a remarkable dogma, everything grasps you.
+--WebAppBoundary
+Content-Disposition: form-data; name="seller_phone"
+
+12345678
+--WebAppBoundary
+Content-Disposition: form-data; name="get_by"
+
+men
+--WebAppBoundary
+Content-Disposition: form-data; name="private"
+
+true
+
+--WebAppBoundary
+Content-Disposition: form-data; name="category_id"
+
+1
+--WebAppBoundary
+Content-Disposition: form-data; name="name"
+
+Shoes
+
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+
+1
+
+--WebAppBoundary
+Content-Disposition: form-data; name="completed"
+
+true
+--WebAppBoundary
+Content-Disposition: form-data; name="files"; filename="product-600x1200-3.png"
+
+< ./assets/img/product-600x1200-3.png
+--WebAppBoundary
+Content-Disposition: form-data; name="files"; filename="product-600x1200-1.png"
+
+< ./assets/img/product-600x1200-1.png
+--WebAppBoundary--
+
+### create category
+POST {{url}}/api/v1/protected/category/
+Accept: application/json
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "name": "Shoes"
+}
+
+
+
+### get categories
+GET {{url}}/api/v1/protected/category/items/1
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+### add item to categories
+POST {{url}}/api/v1/protected/category/item/2/1
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+
+### add item to categories
+GET {{url}}/api/v1/protected/category/items/1
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+### get item
+GET {{url}}/api/v1/protected/items?complete=true
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+
+### get event
+GET {{url}}/api/v1/protected/events/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+### get event
+GET {{url}}/users/
+Accept: application/json
+
+
+
+### get event
+GET {{url}}/api/v1/protected/gifts/1/items/
+Accept: application/json
+Authorization: Bearer {{auth_token}}
+
+### Simple Query over HTTP
+// We just write a GraphQL query in the request body
+GRAPHQL http://localhost:8080/
+
+query getUsers {
+  users {
+    id
+  	name
+    email
+    school
+    last_name
+    first_name
+  }
+}
+
+#### Request to get GraphQL Schema
+#// Our server works with the following GraphQL schema
+#GET http://{{$exampleServer}}/graphql
+#
+#>> {{$historyFolder}}/examples.graphqls
+
+
+# Simple Query over HTTP
+# We just write a GraphQL query in the request body
+GRAPHQL  192.168.1.67:8090/query
+
+query users {
+    users {
+    __typename
+    first_name
+    email
+    workplace
+    school
+    id
+    last_name
+
+
+    }
+
+  }
+
+
+
+
+
+### Queries over WebSocket
+// If server supports WebSocket for GraphQL, we can use it for sending requests via WebSocket
+GRAPHQL 192.168.1.67:8090/query
+
+mutation creatingNewComment($input: NewUser!) {
+  createUser(input:$input){
+    updated_at
+  }
+}
+
+{
+  "input": {
+    "email": "were1@gmail.com",
+    "password": "password",
+    "phone_number": "12341"
+  }
+}
+
+### Queries over WebSocket
+// If server supports WebSocket for GraphQL, we can use it for sending requests via WebSocket
+GRAPHQL 192.168.1.67:8090/query
+
+mutation loginUser($input: LoginUser!) {
+  login(input: $input){
+    access
+    refresh
+    user {
+        email
+
+
+    }
+  }
+}
+
+{
+  "input": {
+    "email": "ianmuhia3@gmail.com",
+    "password": "password"
+  }
+}
+
+
+#### Subscriptions over WebSockets
+// WebSockets are handy for GraphQL subscriptions
+#GRAPHQL {{url}}/query
+GRAPHQL ws://192.168.100.10:8090/query
+
+#GRAPHQL ws://localhost:8080/query
+
+subscription getUser{
+ userCreated{
+  email
+        id
+        last_name
+        phone
+        created_at
+        workplace
+        school
+        first_name
+ }
+}
+
+
+
+#
+#> {%
+#  // In HTTP, our response is just a JSON object
+#  response.body.data.getCommentsWith.forEach((comment, i) => {
+#    client.test("Checking " + i, () => {
+#      client.assert(comment.text.includes("Inside script!"))
+#      client.assert(comment.by !== undefined)
+#    })
+#  })
+#%}
+#
+
+#### Response Scripts for GraphQL over WebSocket
+#GRAPHQL ws://{{$exampleServer}}/graphql-ws
+#
+#subscription {
+#  newComments {
+#    text
+#    by
+#  }
+#}
+#
+#> {%
+#  var i = 0;
+#  // In WebSocket, response is a stream
+#  response.body.onEachMessage((message, unsubscribe) => {
+#    i++;
+#    client.test("Response " + i + " contains 'text' and 'by'", () => {
+#      client.assert(message.text !== undefined)
+#      client.assert(message.by !== undefined)
+#    });
+#    if (i === 10) {
+#      unsubscribe()
+#    }
+#  });
+#%}
+#
+#
+#
