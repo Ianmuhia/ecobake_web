@@ -48,6 +48,77 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AccountDelete struct {
+		Errors func(childComplexity int) int
+		User   func(childComplexity int) int
+	}
+
+	AccountError struct {
+		Code    func(childComplexity int) int
+		Field   func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
+	AccountRegister struct {
+		Errors               func(childComplexity int) int
+		RequiresConfirmation func(childComplexity int) int
+		User                 func(childComplexity int) int
+	}
+
+	AccountRequestDeletion struct {
+		AccountErrors func(childComplexity int) int
+		Errors        func(childComplexity int) int
+	}
+
+	AccountUpdate struct {
+		AccountErrors func(childComplexity int) int
+		Errors        func(childComplexity int) int
+		User          func(childComplexity int) int
+	}
+
+	Address struct {
+		City                     func(childComplexity int) int
+		CityArea                 func(childComplexity int) int
+		CompanyName              func(childComplexity int) int
+		CountryArea              func(childComplexity int) int
+		FirstName                func(childComplexity int) int
+		ID                       func(childComplexity int) int
+		IsDefaultBillingAddress  func(childComplexity int) int
+		IsDefaultShippingAddress func(childComplexity int) int
+		LastName                 func(childComplexity int) int
+		Phone                    func(childComplexity int) int
+		PostalCode               func(childComplexity int) int
+		StreetAddress1           func(childComplexity int) int
+		StreetAddress2           func(childComplexity int) int
+	}
+
+	CheckoutError struct {
+		Code     func(childComplexity int) int
+		Field    func(childComplexity int) int
+		Lines    func(childComplexity int) int
+		Message  func(childComplexity int) int
+		Variants func(childComplexity int) int
+	}
+
+	ConfirmAccount struct {
+		Errors func(childComplexity int) int
+		User   func(childComplexity int) int
+	}
+
+	ConfirmEmailChange struct {
+		Errors func(childComplexity int) int
+		User   func(childComplexity int) int
+	}
+
+	CreateToken struct {
+		AccountErrors func(childComplexity int) int
+		CsrfToken     func(childComplexity int) int
+		Errors        func(childComplexity int) int
+		RefreshToken  func(childComplexity int) int
+		Token         func(childComplexity int) int
+		User          func(childComplexity int) int
+	}
+
 	LoginResp struct {
 		Access  func(childComplexity int) int
 		Refresh func(childComplexity int) int
@@ -119,6 +190,293 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AccountDelete.errors":
+		if e.complexity.AccountDelete.Errors == nil {
+			break
+		}
+
+		return e.complexity.AccountDelete.Errors(childComplexity), true
+
+	case "AccountDelete.user":
+		if e.complexity.AccountDelete.User == nil {
+			break
+		}
+
+		return e.complexity.AccountDelete.User(childComplexity), true
+
+	case "AccountError.code":
+		if e.complexity.AccountError.Code == nil {
+			break
+		}
+
+		return e.complexity.AccountError.Code(childComplexity), true
+
+	case "AccountError.field":
+		if e.complexity.AccountError.Field == nil {
+			break
+		}
+
+		return e.complexity.AccountError.Field(childComplexity), true
+
+	case "AccountError.message":
+		if e.complexity.AccountError.Message == nil {
+			break
+		}
+
+		return e.complexity.AccountError.Message(childComplexity), true
+
+	case "AccountRegister.errors":
+		if e.complexity.AccountRegister.Errors == nil {
+			break
+		}
+
+		return e.complexity.AccountRegister.Errors(childComplexity), true
+
+	case "AccountRegister.requiresConfirmation":
+		if e.complexity.AccountRegister.RequiresConfirmation == nil {
+			break
+		}
+
+		return e.complexity.AccountRegister.RequiresConfirmation(childComplexity), true
+
+	case "AccountRegister.user":
+		if e.complexity.AccountRegister.User == nil {
+			break
+		}
+
+		return e.complexity.AccountRegister.User(childComplexity), true
+
+	case "AccountRequestDeletion.accountErrors":
+		if e.complexity.AccountRequestDeletion.AccountErrors == nil {
+			break
+		}
+
+		return e.complexity.AccountRequestDeletion.AccountErrors(childComplexity), true
+
+	case "AccountRequestDeletion.errors":
+		if e.complexity.AccountRequestDeletion.Errors == nil {
+			break
+		}
+
+		return e.complexity.AccountRequestDeletion.Errors(childComplexity), true
+
+	case "AccountUpdate.accountErrors":
+		if e.complexity.AccountUpdate.AccountErrors == nil {
+			break
+		}
+
+		return e.complexity.AccountUpdate.AccountErrors(childComplexity), true
+
+	case "AccountUpdate.errors":
+		if e.complexity.AccountUpdate.Errors == nil {
+			break
+		}
+
+		return e.complexity.AccountUpdate.Errors(childComplexity), true
+
+	case "AccountUpdate.user":
+		if e.complexity.AccountUpdate.User == nil {
+			break
+		}
+
+		return e.complexity.AccountUpdate.User(childComplexity), true
+
+	case "Address.city":
+		if e.complexity.Address.City == nil {
+			break
+		}
+
+		return e.complexity.Address.City(childComplexity), true
+
+	case "Address.cityArea":
+		if e.complexity.Address.CityArea == nil {
+			break
+		}
+
+		return e.complexity.Address.CityArea(childComplexity), true
+
+	case "Address.companyName":
+		if e.complexity.Address.CompanyName == nil {
+			break
+		}
+
+		return e.complexity.Address.CompanyName(childComplexity), true
+
+	case "Address.countryArea":
+		if e.complexity.Address.CountryArea == nil {
+			break
+		}
+
+		return e.complexity.Address.CountryArea(childComplexity), true
+
+	case "Address.firstName":
+		if e.complexity.Address.FirstName == nil {
+			break
+		}
+
+		return e.complexity.Address.FirstName(childComplexity), true
+
+	case "Address.id":
+		if e.complexity.Address.ID == nil {
+			break
+		}
+
+		return e.complexity.Address.ID(childComplexity), true
+
+	case "Address.isDefaultBillingAddress":
+		if e.complexity.Address.IsDefaultBillingAddress == nil {
+			break
+		}
+
+		return e.complexity.Address.IsDefaultBillingAddress(childComplexity), true
+
+	case "Address.isDefaultShippingAddress":
+		if e.complexity.Address.IsDefaultShippingAddress == nil {
+			break
+		}
+
+		return e.complexity.Address.IsDefaultShippingAddress(childComplexity), true
+
+	case "Address.lastName":
+		if e.complexity.Address.LastName == nil {
+			break
+		}
+
+		return e.complexity.Address.LastName(childComplexity), true
+
+	case "Address.phone":
+		if e.complexity.Address.Phone == nil {
+			break
+		}
+
+		return e.complexity.Address.Phone(childComplexity), true
+
+	case "Address.postalCode":
+		if e.complexity.Address.PostalCode == nil {
+			break
+		}
+
+		return e.complexity.Address.PostalCode(childComplexity), true
+
+	case "Address.streetAddress1":
+		if e.complexity.Address.StreetAddress1 == nil {
+			break
+		}
+
+		return e.complexity.Address.StreetAddress1(childComplexity), true
+
+	case "Address.streetAddress2":
+		if e.complexity.Address.StreetAddress2 == nil {
+			break
+		}
+
+		return e.complexity.Address.StreetAddress2(childComplexity), true
+
+	case "CheckoutError.code":
+		if e.complexity.CheckoutError.Code == nil {
+			break
+		}
+
+		return e.complexity.CheckoutError.Code(childComplexity), true
+
+	case "CheckoutError.field":
+		if e.complexity.CheckoutError.Field == nil {
+			break
+		}
+
+		return e.complexity.CheckoutError.Field(childComplexity), true
+
+	case "CheckoutError.lines":
+		if e.complexity.CheckoutError.Lines == nil {
+			break
+		}
+
+		return e.complexity.CheckoutError.Lines(childComplexity), true
+
+	case "CheckoutError.message":
+		if e.complexity.CheckoutError.Message == nil {
+			break
+		}
+
+		return e.complexity.CheckoutError.Message(childComplexity), true
+
+	case "CheckoutError.variants":
+		if e.complexity.CheckoutError.Variants == nil {
+			break
+		}
+
+		return e.complexity.CheckoutError.Variants(childComplexity), true
+
+	case "ConfirmAccount.errors":
+		if e.complexity.ConfirmAccount.Errors == nil {
+			break
+		}
+
+		return e.complexity.ConfirmAccount.Errors(childComplexity), true
+
+	case "ConfirmAccount.user":
+		if e.complexity.ConfirmAccount.User == nil {
+			break
+		}
+
+		return e.complexity.ConfirmAccount.User(childComplexity), true
+
+	case "ConfirmEmailChange.errors":
+		if e.complexity.ConfirmEmailChange.Errors == nil {
+			break
+		}
+
+		return e.complexity.ConfirmEmailChange.Errors(childComplexity), true
+
+	case "ConfirmEmailChange.user":
+		if e.complexity.ConfirmEmailChange.User == nil {
+			break
+		}
+
+		return e.complexity.ConfirmEmailChange.User(childComplexity), true
+
+	case "CreateToken.accountErrors":
+		if e.complexity.CreateToken.AccountErrors == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.AccountErrors(childComplexity), true
+
+	case "CreateToken.csrfToken":
+		if e.complexity.CreateToken.CsrfToken == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.CsrfToken(childComplexity), true
+
+	case "CreateToken.errors":
+		if e.complexity.CreateToken.Errors == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.Errors(childComplexity), true
+
+	case "CreateToken.refreshToken":
+		if e.complexity.CreateToken.RefreshToken == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.RefreshToken(childComplexity), true
+
+	case "CreateToken.token":
+		if e.complexity.CreateToken.Token == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.Token(childComplexity), true
+
+	case "CreateToken.user":
+		if e.complexity.CreateToken.User == nil {
+			break
+		}
+
+		return e.complexity.CreateToken.User(childComplexity), true
 
 	case "LoginResp.access":
 		if e.complexity.LoginResp.Access == nil {
@@ -264,6 +622,8 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	rc := graphql.GetOperationContext(ctx)
 	ec := executionContext{rc, e}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputAccountInput,
+		ec.unmarshalInputAccountRegisterInput,
 		ec.unmarshalInputLoginUser,
 		ec.unmarshalInputNewUser,
 	)
@@ -347,8 +707,21 @@ var sources = []*ast.Source{
 #
 # https://gqlgen.com/getting-started/
 
+type Query {
+    users: [User!]!
+}
+type Mutation {
+    createUser(input:NewUser!):User!
+    login(input:LoginUser!):LoginResp!
+}
 
+type Subscription {
+    userCreated: User!
+}
 
+interface Node {
+    id: ID!
+}
 type User {
     id: ID!
     name: String!
@@ -363,9 +736,7 @@ type User {
     updated_at: String!
 }
 
-type Query {
-    users: [User!]!
-}
+
 
 input NewUser {
     password: String!
@@ -385,14 +756,222 @@ input LoginUser {
     email: String!
 }
 
-type Mutation {
-    createUser(input:NewUser!):User!
-    login(input:LoginUser!):LoginResp!
+
+
+# Remove user account.
+#
+# Requires one of the following permissions: AUTHENTICATED_USER.
+type AccountDelete {
+    errors: [AccountError!]!
+    user: User
 }
 
-type Subscription {
-    userCreated: User!
-}`, BuiltIn: false},
+type AccountError {
+    # Name of a field that caused the error. A value of ` + "`" + `null` + "`" + ` indicates that the
+    # error isn't associated with a particular field.
+    field: String
+    # The error message.
+    message: String
+    # The error code.
+    code: AccountErrorCode!
+
+}
+
+
+# An enumeration.
+enum AccountErrorCode {
+    ACTIVATE_OWN_ACCOUNT
+    ACTIVATE_SUPERUSER_ACCOUNT
+    DUPLICATED_INPUT_ITEM
+    DEACTIVATE_OWN_ACCOUNT
+    DEACTIVATE_SUPERUSER_ACCOUNT
+    DELETE_NON_STAFF_USER
+    DELETE_OWN_ACCOUNT
+    DELETE_STAFF_ACCOUNT
+    DELETE_SUPERUSER_ACCOUNT
+    GRAPHQL_ERROR
+    INACTIVE
+    INVALID
+    INVALID_PASSWORD
+    LEFT_NOT_MANAGEABLE_PERMISSION
+    INVALID_CREDENTIALS
+    NOT_FOUND
+    OUT_OF_SCOPE_USER
+    OUT_OF_SCOPE_GROUP
+    OUT_OF_SCOPE_PERMISSION
+    PASSWORD_ENTIRELY_NUMERIC
+    PASSWORD_TOO_COMMON
+    PASSWORD_TOO_SHORT
+    PASSWORD_TOO_SIMILAR
+    REQUIRED
+    UNIQUE
+    JWT_SIGNATURE_EXPIRED
+    JWT_INVALID_TOKEN
+    JWT_DECODE_ERROR
+    JWT_MISSING_TOKEN
+    JWT_INVALID_CSRF_TOKEN
+    CHANNEL_INACTIVE
+    MISSING_CHANNEL_SLUG
+    ACCOUNT_NOT_CONFIRMED
+}
+
+input AccountInput {
+    # Given name.
+    firstName: String
+    # Family name.
+    lastName: String
+}
+
+# Register a new user.
+type AccountRegister {
+    # Informs whether users need to confirm their email address.
+    requiresConfirmation: Boolean
+
+    errors: [AccountError!]!
+    user: User
+}
+
+input AccountRegisterInput {
+    # Given name.
+    firstName: String
+    # Family name.
+    lastName: String
+    # The email address of the user.
+    email: String!
+    # Password.
+    password: String!
+    # Base of frontend URL that will be needed to create confirmation URL.
+    redirectUrl: String
+    # Slug of a channel which will be used to notify users. Optional when only one channel exists.
+    channel: String
+}
+
+# Sends an email with the account removal link for the logged-in user.
+#
+# Requires one of the following permissions: AUTHENTICATED_USER.
+type AccountRequestDeletion {
+    accountErrors: [AccountError!]!
+    @deprecated(
+        reason: "This field will be removed in Saleor 4.0. Use ` + "`" + `errors` + "`" + ` field instead."
+    )
+    errors: [AccountError!]!
+}
+
+
+
+# Updates the account of the logged-in user.
+#
+# Requires one of the following permissions: AUTHENTICATED_USER.
+type AccountUpdate {
+    accountErrors: [AccountError!]!
+    @deprecated(
+        reason: "This field will be removed in Saleor 4.0. Use ` + "`" + `errors` + "`" + ` field instead."
+    )
+    errors: [AccountError!]!
+    user: User
+}
+
+
+# Create JWT token.
+type CreateToken {
+    # JWT token, required to authenticate.
+    token: String
+    # JWT refresh token, required to re-generate access token.
+    refreshToken: String
+    # CSRF token required to re-generate access token.
+    csrfToken: String
+    # A user instance.
+    user: User
+    accountErrors: [AccountError!]!
+    @deprecated(
+        reason: "This field will be removed in Saleor 4.0. Use ` + "`" + `errors` + "`" + ` field instead."
+    )
+    errors: [AccountError!]!
+}
+
+# Confirm user account with token sent by email during registration.
+type ConfirmAccount {
+    # An activated user account.
+    user: User
+
+    errors: [AccountError!]!
+}
+
+# Confirm the email change of the logged-in user.
+#
+# Requires one of the following permissions: AUTHENTICATED_USER.
+type ConfirmEmailChange {
+    # A user instance with a new email.
+    user: User
+    errors: [AccountError!]!
+}
+# Represents user address data.
+type Address implements Node {
+    id: ID!
+    firstName: String!
+    lastName: String!
+    companyName: String!
+    streetAddress1: String!
+    streetAddress2: String!
+    city: String!
+    cityArea: String!
+    postalCode: String!
+    countryArea: String!
+    phone: String
+    # Address is user's default shipping address.
+    isDefaultShippingAddress: Boolean
+    # Address is user's default billing address.
+    isDefaultBillingAddress: Boolean
+}
+
+type CheckoutError {
+    # Name of a field that caused the error. A value of ` + "`" + `null` + "`" + ` indicates that the
+    # error isn't associated with a particular field.
+    field: String
+    # The error message.
+    message: String
+    # The error code.
+    code: CheckoutErrorCode!
+    # List of varint IDs which causes the error.
+    variants: [ID!]
+    # List of line Ids which cause the error.
+    lines: [ID!]
+
+}
+
+# An enumeration.
+enum CheckoutErrorCode {
+    BILLING_ADDRESS_NOT_SET
+    CHECKOUT_NOT_FULLY_PAID
+    GRAPHQL_ERROR
+    PRODUCT_NOT_PUBLISHED
+    PRODUCT_UNAVAILABLE_FOR_PURCHASE
+    INSUFFICIENT_STOCK
+    INVALID
+    INVALID_SHIPPING_METHOD
+    NOT_FOUND
+    PAYMENT_ERROR
+    QUANTITY_GREATER_THAN_LIMIT
+    REQUIRED
+    SHIPPING_ADDRESS_NOT_SET
+    SHIPPING_METHOD_NOT_APPLICABLE
+    DELIVERY_METHOD_NOT_APPLICABLE
+    SHIPPING_METHOD_NOT_SET
+    SHIPPING_NOT_REQUIRED
+    TAX_ERROR
+    UNIQUE
+    VOUCHER_NOT_APPLICABLE
+    GIFT_CARD_NOT_APPLICABLE
+    ZERO_QUANTITY
+    MISSING_CHANNEL_SLUG
+    CHANNEL_INACTIVE
+    UNAVAILABLE_VARIANT_IN_CHANNEL
+    EMAIL_NOT_SET
+    NO_LINES
+}
+
+
+`, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -482,6 +1061,1977 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AccountDelete_errors(ctx context.Context, field graphql.CollectedField, obj *model.AccountDelete) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountDelete_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountDelete_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountDelete",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountDelete_user(ctx context.Context, field graphql.CollectedField, obj *model.AccountDelete) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountDelete_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountDelete_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountDelete",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountError_field(ctx context.Context, field graphql.CollectedField, obj *model.AccountError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountError_message(ctx context.Context, field graphql.CollectedField, obj *model.AccountError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountError_code(ctx context.Context, field graphql.CollectedField, obj *model.AccountError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountError_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.AccountErrorCode)
+	fc.Result = res
+	return ec.marshalNAccountErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorCode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountError_code(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type AccountErrorCode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountRegister_requiresConfirmation(ctx context.Context, field graphql.CollectedField, obj *model.AccountRegister) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountRegister_requiresConfirmation(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequiresConfirmation, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountRegister_requiresConfirmation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountRegister",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountRegister_errors(ctx context.Context, field graphql.CollectedField, obj *model.AccountRegister) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountRegister_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountRegister_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountRegister",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountRegister_user(ctx context.Context, field graphql.CollectedField, obj *model.AccountRegister) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountRegister_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountRegister_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountRegister",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountRequestDeletion_accountErrors(ctx context.Context, field graphql.CollectedField, obj *model.AccountRequestDeletion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountRequestDeletion_accountErrors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccountErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountRequestDeletion_accountErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountRequestDeletion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountRequestDeletion_errors(ctx context.Context, field graphql.CollectedField, obj *model.AccountRequestDeletion) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountRequestDeletion_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountRequestDeletion_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountRequestDeletion",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountUpdate_accountErrors(ctx context.Context, field graphql.CollectedField, obj *model.AccountUpdate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountUpdate_accountErrors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccountErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountUpdate_accountErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountUpdate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountUpdate_errors(ctx context.Context, field graphql.CollectedField, obj *model.AccountUpdate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountUpdate_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountUpdate_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountUpdate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AccountUpdate_user(ctx context.Context, field graphql.CollectedField, obj *model.AccountUpdate) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AccountUpdate_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AccountUpdate_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AccountUpdate",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_id(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_firstName(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_firstName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.FirstName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_firstName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_lastName(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_lastName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.LastName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_lastName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_companyName(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_companyName(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CompanyName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_companyName(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_streetAddress1(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_streetAddress1(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StreetAddress1, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_streetAddress1(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_streetAddress2(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_streetAddress2(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StreetAddress2, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_streetAddress2(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_city(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_city(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.City, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_city(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_cityArea(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_cityArea(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CityArea, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_cityArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_postalCode(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_postalCode(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PostalCode, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_postalCode(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_countryArea(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_countryArea(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CountryArea, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_countryArea(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_phone(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_phone(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Phone, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_phone(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_isDefaultShippingAddress(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_isDefaultShippingAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDefaultShippingAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_isDefaultShippingAddress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Address_isDefaultBillingAddress(ctx context.Context, field graphql.CollectedField, obj *model.Address) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Address_isDefaultBillingAddress(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsDefaultBillingAddress, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*bool)
+	fc.Result = res
+	return ec.marshalOBoolean2ᚖbool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Address_isDefaultBillingAddress(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Address",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CheckoutError_field(ctx context.Context, field graphql.CollectedField, obj *model.CheckoutError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckoutError_field(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Field, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CheckoutError_field(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CheckoutError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CheckoutError_message(ctx context.Context, field graphql.CollectedField, obj *model.CheckoutError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckoutError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CheckoutError_message(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CheckoutError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CheckoutError_code(ctx context.Context, field graphql.CollectedField, obj *model.CheckoutError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckoutError_code(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Code, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.CheckoutErrorCode)
+	fc.Result = res
+	return ec.marshalNCheckoutErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐCheckoutErrorCode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CheckoutError_code(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CheckoutError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CheckoutErrorCode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CheckoutError_variants(ctx context.Context, field graphql.CollectedField, obj *model.CheckoutError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckoutError_variants(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Variants, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOID2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CheckoutError_variants(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CheckoutError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CheckoutError_lines(ctx context.Context, field graphql.CollectedField, obj *model.CheckoutError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CheckoutError_lines(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Lines, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOID2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CheckoutError_lines(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CheckoutError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ConfirmAccount_user(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmAccount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ConfirmAccount_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ConfirmAccount_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmAccount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ConfirmAccount_errors(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmAccount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ConfirmAccount_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ConfirmAccount_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmAccount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ConfirmEmailChange_user(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmEmailChange) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ConfirmEmailChange_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ConfirmEmailChange_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmEmailChange",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ConfirmEmailChange_errors(ctx context.Context, field graphql.CollectedField, obj *model.ConfirmEmailChange) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ConfirmEmailChange_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ConfirmEmailChange_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ConfirmEmailChange",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_token(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_token(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Token, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_token(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_refreshToken(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_refreshToken(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RefreshToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_refreshToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_csrfToken(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_csrfToken(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CsrfToken, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_csrfToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_user(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*models.User)
+	fc.Result = res
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "workplace":
+				return ec.fieldContext_User_workplace(ctx, field)
+			case "first_name":
+				return ec.fieldContext_User_first_name(ctx, field)
+			case "last_name":
+				return ec.fieldContext_User_last_name(ctx, field)
+			case "school":
+				return ec.fieldContext_User_school(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "profile_image":
+				return ec.fieldContext_User_profile_image(ctx, field)
+			case "created_at":
+				return ec.fieldContext_User_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_User_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_accountErrors(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_accountErrors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.AccountErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_accountErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateToken_errors(ctx context.Context, field graphql.CollectedField, obj *model.CreateToken) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CreateToken_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.AccountError)
+	fc.Result = res
+	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CreateToken_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateToken",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "field":
+				return ec.fieldContext_AccountError_field(ctx, field)
+			case "message":
+				return ec.fieldContext_AccountError_message(ctx, field)
+			case "code":
+				return ec.fieldContext_AccountError_code(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _LoginResp_user(ctx context.Context, field graphql.CollectedField, obj *model.LoginResp) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_LoginResp_user(ctx, field)
@@ -3311,6 +5861,110 @@ func (ec *executionContext) fieldContext___Type_specifiedByURL(ctx context.Conte
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputAccountInput(ctx context.Context, obj interface{}) (model.AccountInput, error) {
+	var it model.AccountInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "firstName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			it.FirstName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			it.LastName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputAccountRegisterInput(ctx context.Context, obj interface{}) (model.AccountRegisterInput, error) {
+	var it model.AccountRegisterInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"firstName", "lastName", "email", "password", "redirectUrl", "channel"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "firstName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
+			it.FirstName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "lastName":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			it.LastName, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "password":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			it.Password, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "redirectUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirectUrl"))
+			it.RedirectURL, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "channel":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("channel"))
+			it.Channel, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputLoginUser(ctx context.Context, obj interface{}) (model.LoginUser, error) {
 	var it model.LoginUser
 	asMap := map[string]interface{}{}
@@ -3395,9 +6049,465 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj model.Node) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.Address:
+		return ec._Address(ctx, sel, &obj)
+	case *model.Address:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Address(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var accountDeleteImplementors = []string{"AccountDelete"}
+
+func (ec *executionContext) _AccountDelete(ctx context.Context, sel ast.SelectionSet, obj *model.AccountDelete) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountDeleteImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountDelete")
+		case "errors":
+
+			out.Values[i] = ec._AccountDelete_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "user":
+
+			out.Values[i] = ec._AccountDelete_user(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var accountErrorImplementors = []string{"AccountError"}
+
+func (ec *executionContext) _AccountError(ctx context.Context, sel ast.SelectionSet, obj *model.AccountError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountError")
+		case "field":
+
+			out.Values[i] = ec._AccountError_field(ctx, field, obj)
+
+		case "message":
+
+			out.Values[i] = ec._AccountError_message(ctx, field, obj)
+
+		case "code":
+
+			out.Values[i] = ec._AccountError_code(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var accountRegisterImplementors = []string{"AccountRegister"}
+
+func (ec *executionContext) _AccountRegister(ctx context.Context, sel ast.SelectionSet, obj *model.AccountRegister) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountRegisterImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountRegister")
+		case "requiresConfirmation":
+
+			out.Values[i] = ec._AccountRegister_requiresConfirmation(ctx, field, obj)
+
+		case "errors":
+
+			out.Values[i] = ec._AccountRegister_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "user":
+
+			out.Values[i] = ec._AccountRegister_user(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var accountRequestDeletionImplementors = []string{"AccountRequestDeletion"}
+
+func (ec *executionContext) _AccountRequestDeletion(ctx context.Context, sel ast.SelectionSet, obj *model.AccountRequestDeletion) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountRequestDeletionImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountRequestDeletion")
+		case "accountErrors":
+
+			out.Values[i] = ec._AccountRequestDeletion_accountErrors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "errors":
+
+			out.Values[i] = ec._AccountRequestDeletion_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var accountUpdateImplementors = []string{"AccountUpdate"}
+
+func (ec *executionContext) _AccountUpdate(ctx context.Context, sel ast.SelectionSet, obj *model.AccountUpdate) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, accountUpdateImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AccountUpdate")
+		case "accountErrors":
+
+			out.Values[i] = ec._AccountUpdate_accountErrors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "errors":
+
+			out.Values[i] = ec._AccountUpdate_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "user":
+
+			out.Values[i] = ec._AccountUpdate_user(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var addressImplementors = []string{"Address", "Node"}
+
+func (ec *executionContext) _Address(ctx context.Context, sel ast.SelectionSet, obj *model.Address) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, addressImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Address")
+		case "id":
+
+			out.Values[i] = ec._Address_id(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "firstName":
+
+			out.Values[i] = ec._Address_firstName(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "lastName":
+
+			out.Values[i] = ec._Address_lastName(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "companyName":
+
+			out.Values[i] = ec._Address_companyName(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "streetAddress1":
+
+			out.Values[i] = ec._Address_streetAddress1(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "streetAddress2":
+
+			out.Values[i] = ec._Address_streetAddress2(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "city":
+
+			out.Values[i] = ec._Address_city(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cityArea":
+
+			out.Values[i] = ec._Address_cityArea(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "postalCode":
+
+			out.Values[i] = ec._Address_postalCode(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "countryArea":
+
+			out.Values[i] = ec._Address_countryArea(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "phone":
+
+			out.Values[i] = ec._Address_phone(ctx, field, obj)
+
+		case "isDefaultShippingAddress":
+
+			out.Values[i] = ec._Address_isDefaultShippingAddress(ctx, field, obj)
+
+		case "isDefaultBillingAddress":
+
+			out.Values[i] = ec._Address_isDefaultBillingAddress(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var checkoutErrorImplementors = []string{"CheckoutError"}
+
+func (ec *executionContext) _CheckoutError(ctx context.Context, sel ast.SelectionSet, obj *model.CheckoutError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, checkoutErrorImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CheckoutError")
+		case "field":
+
+			out.Values[i] = ec._CheckoutError_field(ctx, field, obj)
+
+		case "message":
+
+			out.Values[i] = ec._CheckoutError_message(ctx, field, obj)
+
+		case "code":
+
+			out.Values[i] = ec._CheckoutError_code(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "variants":
+
+			out.Values[i] = ec._CheckoutError_variants(ctx, field, obj)
+
+		case "lines":
+
+			out.Values[i] = ec._CheckoutError_lines(ctx, field, obj)
+
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var confirmAccountImplementors = []string{"ConfirmAccount"}
+
+func (ec *executionContext) _ConfirmAccount(ctx context.Context, sel ast.SelectionSet, obj *model.ConfirmAccount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, confirmAccountImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ConfirmAccount")
+		case "user":
+
+			out.Values[i] = ec._ConfirmAccount_user(ctx, field, obj)
+
+		case "errors":
+
+			out.Values[i] = ec._ConfirmAccount_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var confirmEmailChangeImplementors = []string{"ConfirmEmailChange"}
+
+func (ec *executionContext) _ConfirmEmailChange(ctx context.Context, sel ast.SelectionSet, obj *model.ConfirmEmailChange) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, confirmEmailChangeImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ConfirmEmailChange")
+		case "user":
+
+			out.Values[i] = ec._ConfirmEmailChange_user(ctx, field, obj)
+
+		case "errors":
+
+			out.Values[i] = ec._ConfirmEmailChange_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var createTokenImplementors = []string{"CreateToken"}
+
+func (ec *executionContext) _CreateToken(ctx context.Context, sel ast.SelectionSet, obj *model.CreateToken) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createTokenImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateToken")
+		case "token":
+
+			out.Values[i] = ec._CreateToken_token(ctx, field, obj)
+
+		case "refreshToken":
+
+			out.Values[i] = ec._CreateToken_refreshToken(ctx, field, obj)
+
+		case "csrfToken":
+
+			out.Values[i] = ec._CreateToken_csrfToken(ctx, field, obj)
+
+		case "user":
+
+			out.Values[i] = ec._CreateToken_user(ctx, field, obj)
+
+		case "accountErrors":
+
+			out.Values[i] = ec._CreateToken_accountErrors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "errors":
+
+			out.Values[i] = ec._CreateToken_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var loginRespImplementors = []string{"LoginResp"}
 
@@ -4088,6 +7198,70 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAccountError2ᚕᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.AccountError) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAccountError2ᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountError(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAccountError2ᚖecobakeᚋinternalᚋgraphᚋmodelᚐAccountError(ctx context.Context, sel ast.SelectionSet, v *model.AccountError) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AccountError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAccountErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorCode(ctx context.Context, v interface{}) (model.AccountErrorCode, error) {
+	var res model.AccountErrorCode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAccountErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐAccountErrorCode(ctx context.Context, sel ast.SelectionSet, v model.AccountErrorCode) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4103,6 +7277,16 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) unmarshalNCheckoutErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐCheckoutErrorCode(ctx context.Context, v interface{}) (model.CheckoutErrorCode, error) {
+	var res model.CheckoutErrorCode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCheckoutErrorCode2ecobakeᚋinternalᚋgraphᚋmodelᚐCheckoutErrorCode(ctx context.Context, sel ast.SelectionSet, v model.CheckoutErrorCode) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{}) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -4110,6 +7294,21 @@ func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{
 
 func (ec *executionContext) marshalNID2int64(ctx context.Context, sel ast.SelectionSet, v int64) graphql.Marshaler {
 	res := graphql.MarshalInt64(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4494,6 +7693,44 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -4508,6 +7745,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	}
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
