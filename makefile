@@ -10,6 +10,10 @@ geninit:
 
 up:
 	docker-compose up
+egen:
+	go generate ./ent
+desc:
+	 go run -mod=mod entgo.io/ent/cmd/ent describe ./ent/schema
 
 stop:
 	docker-compose down

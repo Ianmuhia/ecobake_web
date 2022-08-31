@@ -147,9 +147,13 @@ func StartApplication() {
 	logger.Println(err)
 
 	// initiate services
+	client, err := internal.EntConn(pgConn)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	mailService := services.NewMailService()
 	storageService := services.NewFileStorageService(bucketName, minioClient)
-	userService := services.NewUsersService(pgPool, cfg)
+	userService := services.NewUsersService(pgPool, cfg, client)
 	tokenService, err := services.NewTokenService(conf.Secrets.Jwt, cfg)
 	if err != nil {
 		logger.Println(err)

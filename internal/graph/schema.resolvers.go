@@ -5,12 +5,12 @@ package graph
 
 import (
 	"context"
-	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
 	"errors"
 	"fmt"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
+	"log"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -37,6 +37,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser)
 		IsVerified:   false,
 	}
 	//data.PasswordHash = data.Hash()
+	log.Println(data)
 	_, err := r.UserService.CreateUser(ctx, data)
 	if err != nil {
 		return &models.AccountRegister{

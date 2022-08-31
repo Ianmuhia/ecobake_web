@@ -5,22 +5,24 @@ import (
 	"context"
 	"database/sql"
 	"ecobake/cmd/config"
+	"ecobake/ent"
+	user2 "ecobake/ent/user"
 	"ecobake/internal/models"
 	"ecobake/internal/postgresql/db"
 	"encoding/gob"
-
 	"fmt"
 	"log"
 	"time"
 )
 
 type usersService struct {
-	q   *db.Queries
-	cfg *config.AppConfig
+	q      *db.Queries
+	cfg    *config.AppConfig
+	client *ent.Client
 }
 
-func NewUsersService(q db.DBTX, cfg *config.AppConfig) *usersService {
-	return &usersService{q: db.New(q), cfg: cfg}
+func NewUsersService(q db.DBTX, cfg *config.AppConfig, client *ent.Client) *usersService {
+	return &usersService{q: db.New(q), cfg: cfg, client: client}
 }
 
 type UsersService interface {
@@ -39,44 +41,46 @@ type UsersService interface {
 }
 
 func (us *usersService) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
-	var name = db.CreateUserParams{
-		PasswordHash: user.PasswordHash,
-		UserName:     user.UserName,
-		PhoneNumber:  user.PhoneNumber,
-		Email:        user.Email,
-	}
-	data, err := us.q.CreateUser(ctx, name)
+
+	data, err := us.client.User.
+		Create().
+		SetEmail(user.Email).
+		SetIsVerified(false).
+		SetUserName("ianmusdfadsfasfasdfasdfasdfasdfdfasdfasdfasdfasdfasdfasffhia").
+		SetPhoneNumber(user.PhoneNumber).
+		SetPasswordHash("user.PasswordHash").Save(ctx)
 
 	if err != nil {
+		log.Println(err)
 		return new(models.User), err
 	}
-
+	log.Println(data)
 	return &models.User{
-		ID:           data.ID,
-		CreatedAt:    data.CreatedAt.Time,
+		ID:           int64(data.ID),
+		CreatedAt:    data.CreatedAt,
 		UserName:     data.UserName,
 		PhoneNumber:  data.PhoneNumber,
 		Email:        data.Email,
-		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, data.ProfileImage.String),
-		IsVerified:   data.IsVerified.Bool,
+		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, data.ProfileImage),
+		IsVerified:   data.IsVerified,
 	}, nil
 }
 func (us *usersService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	user, err := us.q.GetUserByEmail(ctx, email)
-	if err != nil {
-		return new(models.User), err
-	}
-
+	//user, err := us.q.GetUserByEmail(ctx, email)
+	//if err != nil {
+	//	return new(models.User), err
+	//}
+	user := us.client.User.Query().Where(user2.Email("ianmuhia")).OnlyX(ctx)
 	return &models.User{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt.Time,
+		ID:           int64(user.ID),
+		CreatedAt:    user.CreatedAt,
 		PasswordHash: user.PasswordHash,
 		UserName:     user.UserName,
 		Password:     user.PasswordHash,
 		PhoneNumber:  user.PhoneNumber,
 		Email:        user.Email,
 		//ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, use),
-		IsVerified: user.IsVerified.Bool,
+		IsVerified: user.IsVerified,
 	}, nil
 }
 func (us *usersService) GetUnVerifiedUserByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -123,7 +127,7 @@ func (us *usersService) DeleteUser(ctx context.Context, id int64) error {
 	return nil
 }
 func (us *usersService) GetAllUsers(ctx context.Context) (int, []*models.User, error) {
-	users, err := us.q.ListUsers(ctx)
+	users, err := us.client.User.Query().All(ctx)
 	d := make([]*models.User, len(users))
 	if err != nil {
 		return 0, d, err
@@ -131,15 +135,14 @@ func (us *usersService) GetAllUsers(ctx context.Context) (int, []*models.User, e
 
 	for i, user := range users {
 		d[i] = &models.User{
-			ID:        user.ID,
-			CreatedAt: user.CreatedAt.Time,
-			UpdatedAt: user.UpdatedAt.Time,
-			UserName:  user.UserName,
-			Email:     user.Email,
-
+			ID:           int64(user.ID),
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
+			UserName:     user.UserName,
+			Email:        user.Email,
 			PhoneNumber:  user.PhoneNumber,
-			ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
-			IsVerified:   user.IsVerified.Bool,
+			ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage),
+			IsVerified:   user.IsVerified,
 		}
 	}
 

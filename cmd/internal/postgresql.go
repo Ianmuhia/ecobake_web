@@ -2,7 +2,12 @@ package internal
 
 import (
 	"context"
+	"database/sql"
+	_ "database/sql"
 	"ecobake/cmd/config"
+	"ecobake/ent"
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
 	"fmt"
 	"log"
 	"net/url"
@@ -11,6 +16,7 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pkg/errors"
 )
 
@@ -27,6 +33,7 @@ func NewPostgreSQL(cfg config.PostgresConn) (*pgxpool.Pool, error) {
 
 	dsn.RawQuery = q.Encode()
 
+	log.Println(dsn.String())
 	pool, err := pgxpool.Connect(context.Background(), dsn.String())
 	if err != nil {
 		return nil, err
@@ -36,7 +43,68 @@ func NewPostgreSQL(cfg config.PostgresConn) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
+	db, err := sql.Open("pgx", dsn.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create an ent.Driver from `db`.
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	client := ent.NewClient(ent.Driver(drv))
+	log.Println(client.Debug())
+
+	// Your code. For example:
+	ctx := context.Background()
+	if err := client.Schema.Create(ctx); err != nil {
+		log.Fatal(err)
+	}
+	//users, err := client.User.Query().All(ctx)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//log.Println(users)
+
 	return pool, nil
+}
+
+func EntConn(cfg config.PostgresConn) (*ent.Client, error) {
+	dsn := url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(cfg.DBUser, cfg.DBPass),
+		Host:   fmt.Sprintf("%s:%v", cfg.URL, cfg.Port),
+		Path:   cfg.DBName,
+	}
+
+	q := dsn.Query()
+
+	dsn.RawQuery = q.Encode()
+
+	log.Println(dsn.String())
+	pool, err := pgxpool.Connect(context.Background(), dsn.String())
+	if err != nil {
+		return nil, err
+	}
+
+	if err := pool.Ping(context.Background()); err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("pgx", dsn.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create an ent.Driver from `db`.
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	client := ent.NewClient(ent.Driver(drv))
+	log.Println(client.Debug())
+
+	// Your code. For example:
+	ctx := context.Background()
+	if err := client.Schema.Create(ctx); err != nil {
+		log.Fatal(err)
+	}
+	return client, nil
 }
 
 // NewPGXPool is a PostgreSQL connection pool for pgx.

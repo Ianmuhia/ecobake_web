@@ -3,19 +3,15 @@
 package models
 
 import (
+	"ecobake/ent"
 	"fmt"
 	"io"
 	"strconv"
 )
 
-type Node interface {
-	IsNode()
-	GetID() string
-}
-
 type AccountDelete struct {
 	Errors []*AccountError `json:"errors"`
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 }
 
 type AccountError struct {
@@ -32,7 +28,7 @@ type AccountInput struct {
 type AccountRegister struct {
 	RequiresConfirmation *bool           `json:"requiresConfirmation"`
 	Errors               []*AccountError `json:"errors"`
-	User                 *User           `json:"user"`
+	User                 *ent.User       `json:"user"`
 }
 
 type AccountRegisterInput struct {
@@ -46,7 +42,7 @@ type AccountRegisterInput struct {
 
 type AccountRegisterResponse struct {
 	Errors []*AccountError `json:"errors"`
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 }
 
 type AccountRequestDeletion struct {
@@ -55,7 +51,7 @@ type AccountRequestDeletion struct {
 
 type AccountUpdate struct {
 	Errors []*AccountError `json:"errors"`
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 }
 
 type Address struct {
@@ -74,13 +70,7 @@ type Address struct {
 	IsDefaultBillingAddress  *bool   `json:"isDefaultBillingAddress"`
 }
 
-func (Address) IsNode()            {}
-func (this Address) GetID() string { return this.ID }
-
-type Categories struct {
-	Categories []*Category           `json:"categories"`
-	Errors     []ListEntityErrorCode `json:"errors"`
-}
+func (Address) IsNode() {}
 
 type CheckoutError struct {
 	Field    *string           `json:"field"`
@@ -91,12 +81,12 @@ type CheckoutError struct {
 }
 
 type ConfirmAccount struct {
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type ConfirmEmailChange struct {
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
@@ -109,7 +99,7 @@ type CreateToken struct {
 	Token        *string         `json:"token"`
 	RefreshToken *string         `json:"refreshToken"`
 	CsrfToken    *string         `json:"csrfToken"`
-	User         *User           `json:"user"`
+	User         *ent.User       `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
 
@@ -133,9 +123,9 @@ type Image struct {
 }
 
 type LoginResp struct {
-	User    *User   `json:"user"`
-	Refresh *string `json:"refresh"`
-	Access  *string `json:"access"`
+	User    *ent.User `json:"user"`
+	Refresh *string   `json:"refresh"`
+	Access  *string   `json:"access"`
 }
 
 type LoginUser struct {
@@ -150,19 +140,19 @@ type NewUser struct {
 }
 
 type PasswordChange struct {
-	User          *User           `json:"user"`
+	User          *ent.User       `json:"user"`
 	AccountErrors []*AccountError `json:"accountErrors"`
 	Errors        []*AccountError `json:"errors"`
 }
 
 type RefreshToken struct {
 	Token  *string         `json:"token"`
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type RequestEmailChange struct {
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
@@ -174,7 +164,7 @@ type SetPassword struct {
 	Token        *string         `json:"token"`
 	RefreshToken *string         `json:"refreshToken"`
 	CsrfToken    *string         `json:"csrfToken"`
-	User         *User           `json:"user"`
+	User         *ent.User       `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
 
@@ -185,22 +175,17 @@ type UploadError struct {
 }
 
 type UserAvatarDelete struct {
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type UserAvatarUpdate struct {
-	User   *User           `json:"user"`
+	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
-type Users struct {
-	Users  []*User               `json:"users"`
-	Errors []ListEntityErrorCode `json:"errors"`
-}
-
 type VerifyToken struct {
-	User    *User           `json:"user"`
+	User    *ent.User       `json:"user"`
 	IsValid bool            `json:"isValid"`
 	Payload *string         `json:"payload"`
 	Errors  []*AccountError `json:"errors"`
