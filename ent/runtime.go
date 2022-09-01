@@ -29,10 +29,6 @@ func init() {
 	category.IconValidator = categoryDescIcon.Validators[0].(func(string) error)
 	userFields := schema.User{}.Fields()
 	_ = userFields
-	// userDescUserName is the schema descriptor for user_name field.
-	userDescUserName := userFields[0].Descriptor()
-	// user.UserNameValidator is a validator for the "user_name" field. It is called by the builders before save.
-	user.UserNameValidator = userDescUserName.Validators[0].(func(string) error)
 	// userDescCreatedAt is the schema descriptor for created_at field.
 	userDescCreatedAt := userFields[1].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.

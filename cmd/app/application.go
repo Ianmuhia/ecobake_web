@@ -4,6 +4,7 @@ import (
 	"context"
 	"ecobake/cmd/config"
 	"ecobake/cmd/internal"
+	"ecobake/ent"
 	"ecobake/internal/controllers"
 	"ecobake/internal/graph"
 	"ecobake/internal/graph/generated"
@@ -173,6 +174,7 @@ func StartApplication() {
 		tokenService,
 		searchService,
 		categoryService,
+		client,
 		//paymentService,
 	)
 
@@ -181,6 +183,7 @@ func StartApplication() {
 	//userService.CleanDB()
 	// Run the server
 	Run(
+		client,
 		logger,
 		conf.Server.Port,
 		conf.Server.Address,
@@ -196,6 +199,7 @@ func StartApplication() {
 }
 
 func Run(
+	client *ent.Client,
 	logger *log.Logger,
 	port string,
 	address string,
@@ -210,6 +214,7 @@ func Run(
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	resolver := graph.NewResolver(
+		client,
 		storageService,
 		natsService,
 		userService,

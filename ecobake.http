@@ -219,16 +219,15 @@ Authorization: Bearer {{auth_token}}
 
 ### Simple Query over HTTP
 // We just write a GraphQL query in the request body
-GRAPHQL http://localhost:8080/
+GRAPHQL http://192.168.0.102:8090/query
 
 query getUsers {
   users {
-    id
-  	name
-    email
-    school
-    last_name
-    first_name
+    users {
+     __typename
+     phone_number
+       email
+    }
   }
 }
 
@@ -324,7 +323,48 @@ subscription getUser{
  }
 }
 
+####
+GRAPHQL 192.168.0.102:8090/query
 
+mutation createUser($input: NewUser!) {
+  createUser(input: $input){
+    user {
+        email
+
+    }
+
+
+  }
+
+  }
+
+
+ {
+  "input": {
+    "email": "ianmuhia3@gmail.com",
+    "phone_number": "ianmuhia3@gmail.com",
+    "password": "password"
+  }
+}
+
+####
+GRAPHQL 192.168.0.102:8090/query
+
+query listUsers {
+  users {
+    users {
+      __typename
+      created_at
+      id
+
+      username
+      email
+      phone_number
+      profile_image
+    }
+    errors
+  }
+}
 
 #
 #> {%

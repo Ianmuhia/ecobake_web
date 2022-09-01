@@ -21,10 +21,8 @@ type Mutation {
     # fails it will try to take refreshToken from the http-only cookie
     # -refreshToken. csrfToken is required when refreshToken is provided as a cookie.
     tokenRefresh(
-        # CSRF token required to refresh token. This argument is required when refreshToken is provided as a cookie.
-        csrfToken: String
         # Refresh token.
-        refreshToken: String
+        refreshToken: String!
     ): RefreshToken
     # Verify JWT token.
     tokenVerify(
@@ -221,9 +219,9 @@ type AccountDelete {
 type AccountError {
     # Name of a field that caused the error. A value of `null` indicates that the
     # error isn't associated with a particular field.
-    field: String
+    field: String!
     # The error message.
-    message: String
+    message: String!
     # The error code.
     code: AccountErrorCode!
 
@@ -324,11 +322,9 @@ type AccountUpdate {
 # Create JWT token.
 type CreateToken {
     # JWT token, required to authenticate.
-    token: String
+    token: String!
     # JWT refresh token, required to re-generate access token.
-    refreshToken: String
-    # CSRF token required to re-generate access token.
-    csrfToken: String
+    refreshToken: String!
     # A user instance.
     user: User
     errors: [AccountError!]!
@@ -356,7 +352,7 @@ type ConfirmEmailChange {
     errors: [AccountError!]!
 }
 # Represents user address data.
-type Address implements Node {
+type Address  {
     id: ID!
     firstName: String!
     lastName: String!
@@ -407,7 +403,6 @@ enum  ListEntityErrorCode {
 enum CheckoutErrorCode {
     BILLING_ADDRESS_NOT_SET
     CHECKOUT_NOT_FULLY_PAID
-
     PRODUCT_NOT_PUBLISHED
     PRODUCT_UNAVAILABLE_FOR_PURCHASE
     INSUFFICIENT_STOCK
@@ -438,7 +433,7 @@ enum CheckoutErrorCode {
 # csrfToken is required when refreshToken is provided as a cookie.
 type RefreshToken {
     # JWT token, required to authenticate.
-    token: String
+    token: String!
     # A user instance.
     user: User
     errors: [AccountError!]!
@@ -473,8 +468,6 @@ type SetPassword {
     token: String
     # JWT refresh token, required to re-generate access token.
     refreshToken: String
-    # CSRF token required to re-generate access token.
-    csrfToken: String
     # A user instance.
     user: User
 
@@ -486,8 +479,6 @@ type SetPassword {
 type RequestEmailChange {
     # A user instance.
     user: User
-
-
     errors: [AccountError!]!
 }
 

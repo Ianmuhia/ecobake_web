@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/product"
 	"ecobake/ent/user"
 	"encoding/json"
 	"fmt"
@@ -94,6 +95,16 @@ func (c *Category) Node(ctx context.Context) (node *Node, err error) {
 		Type:  "string",
 		Name:  "icon",
 		Value: string(buf),
+	}
+	return node, nil
+}
+
+func (pr *Product) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     pr.ID,
+		Type:   "Product",
+		Fields: make([]*Field, 0),
+		Edges:  make([]*Edge, 0),
 	}
 	return node, nil
 }
@@ -259,6 +270,18 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 			return nil, err
 		}
 		return n, nil
+	case product.Table:
+		query := c.Product.Query().
+			Where(product.ID(id))
+		query, err := query.CollectFields(ctx, "Product")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
 	case user.Table:
 		query := c.User.Query().
 			Where(user.ID(id))
@@ -348,6 +371,22 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		query := c.Category.Query().
 			Where(category.IDIn(ids...))
 		query, err := query.CollectFields(ctx, "Category")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case product.Table:
+		query := c.Product.Query().
+			Where(product.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Product")
 		if err != nil {
 			return nil, err
 		}

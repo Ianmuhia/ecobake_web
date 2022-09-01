@@ -41,20 +41,21 @@ type UsersService interface {
 }
 
 func (us *usersService) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
-
+	err := user.Hash()
+	if err != nil {
+		return nil, err
+	}
 	data, err := us.client.User.
 		Create().
 		SetEmail(user.Email).
 		SetIsVerified(false).
-		SetUserName("ianmusdfadsfasfasdfasdfasdfasdfdfasdfasdfasdfasdfasdfasffhia").
+		SetUserName(user.Email).
 		SetPhoneNumber(user.PhoneNumber).
-		SetPasswordHash("user.PasswordHash").Save(ctx)
+		SetPasswordHash(user.PasswordHash).Save(ctx)
 
 	if err != nil {
-		log.Println(err)
 		return new(models.User), err
 	}
-	log.Println(data)
 	return &models.User{
 		ID:           int64(data.ID),
 		CreatedAt:    data.CreatedAt,
@@ -66,11 +67,10 @@ func (us *usersService) CreateUser(ctx context.Context, user models.User) (*mode
 	}, nil
 }
 func (us *usersService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	//user, err := us.q.GetUserByEmail(ctx, email)
-	//if err != nil {
-	//	return new(models.User), err
-	//}
-	user := us.client.User.Query().Where(user2.Email("ianmuhia")).OnlyX(ctx)
+	user, err := us.client.User.Query().Where(user2.Email(email)).Only(ctx)
+	if err != nil {
+		return new(models.User), err
+	}
 	return &models.User{
 		ID:           int64(user.ID),
 		CreatedAt:    user.CreatedAt,
@@ -79,8 +79,8 @@ func (us *usersService) GetUserByEmail(ctx context.Context, email string) (*mode
 		Password:     user.PasswordHash,
 		PhoneNumber:  user.PhoneNumber,
 		Email:        user.Email,
-		//ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, use),
-		IsVerified: user.IsVerified,
+		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage),
+		IsVerified:   user.IsVerified,
 	}, nil
 }
 func (us *usersService) GetUnVerifiedUserByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -174,20 +174,23 @@ func (us *usersService) UpdateUserImage(ctx context.Context, email, imageName st
 	}, nil
 }
 func (us *usersService) UpdateUserStatus(ctx context.Context, email string) (*models.User, error) {
-	user, err := us.q.UpdateUserStatus(ctx, email)
+	_, err := us.client.User.Update().Where(user2.Email(email)).SetIsVerified(true).Save(ctx)
+
+	//user, err := us.q.UpdateUserStatus(ctx, email)
 	if err != nil {
 		return new(models.User), err
 	}
-	return &models.User{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt.Time,
-		UpdatedAt:    user.UpdatedAt.Time,
-		UserName:     user.UserName,
-		PhoneNumber:  user.PhoneNumber,
-		Email:        user.Email,
-		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
-		IsVerified:   user.IsVerified.Bool,
-	}, nil
+	//return &models.User{
+	//	ID:           user.ID,
+	//	CreatedAt:    user.CreatedAt.Time,
+	//	UpdatedAt:    user.UpdatedAt.Time,
+	//	UserName:     user.UserName,
+	//	PhoneNumber:  user.PhoneNumber,
+	//	Email:        user.Email,
+	//	ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
+	//	IsVerified:   user.IsVerified.Bool,
+	//}, nil
+	return new(models.User), nil
 }
 func (us *usersService) UpdateUserDetails(ctx context.Context, id int64, userModel *models.User) (*models.User, error) {
 

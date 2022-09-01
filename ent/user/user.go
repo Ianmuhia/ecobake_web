@@ -58,8 +58,6 @@ func ValidColumn(column string) bool {
 }
 
 var (
-	// UserNameValidator is a validator for the "user_name" field. It is called by the builders before save.
-	UserNameValidator func(string) error
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt time.Time
 	// PasswordHashValidator is a validator for the "password_hash" field. It is called by the builders before save.

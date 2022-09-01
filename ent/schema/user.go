@@ -13,7 +13,7 @@ type User struct {
 
 func (User) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("user_name").Unique().NotEmpty(),
+		field.String("user_name").Optional(),
 		field.Time("created_at").Default(time.Now()),
 		field.Time("updated_at").Optional(),
 		field.Time("deleted_at").Optional(),

@@ -81,6 +81,8 @@ func (r *Repository) graphqlHandler() gin.HandlerFunc {
 		TokenService:    r.tokenService,
 		SearchService:   r.searchService,
 		CategoryService: r.CategoryService,
+		Client:          r.Client,
+		//Client:
 	}}))
 	// Configure WebSocket with CORS
 	h.AddTransport(&transport.Websocket{
@@ -92,8 +94,7 @@ func (r *Repository) graphqlHandler() gin.HandlerFunc {
 			Subprotocols:     nil,
 			Error:            nil,
 			CheckOrigin: func(r *http.Request) bool {
-				log.Println(r.URL.String())
-				log.Println("#########")
+
 				return true
 			},
 			EnableCompression: false,

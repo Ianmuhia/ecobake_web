@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/product"
 	"ecobake/ent/user"
 	"encoding/base64"
 	"errors"
@@ -470,6 +471,237 @@ func (c *Category) ToEdge(order *CategoryOrder) *CategoryEdge {
 	return &CategoryEdge{
 		Node:   c,
 		Cursor: order.Field.toCursor(c),
+	}
+}
+
+// ProductEdge is the edge representation of Product.
+type ProductEdge struct {
+	Node   *Product `json:"node"`
+	Cursor Cursor   `json:"cursor"`
+}
+
+// ProductConnection is the connection containing edges to Product.
+type ProductConnection struct {
+	Edges      []*ProductEdge `json:"edges"`
+	PageInfo   PageInfo       `json:"pageInfo"`
+	TotalCount int            `json:"totalCount"`
+}
+
+func (c *ProductConnection) build(nodes []*Product, pager *productPager, after *Cursor, first *int, before *Cursor, last *int) {
+	c.PageInfo.HasNextPage = before != nil
+	c.PageInfo.HasPreviousPage = after != nil
+	if first != nil && *first+1 == len(nodes) {
+		c.PageInfo.HasNextPage = true
+		nodes = nodes[:len(nodes)-1]
+	} else if last != nil && *last+1 == len(nodes) {
+		c.PageInfo.HasPreviousPage = true
+		nodes = nodes[:len(nodes)-1]
+	}
+	var nodeAt func(int) *Product
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Product {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Product {
+			return nodes[i]
+		}
+	}
+	c.Edges = make([]*ProductEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		c.Edges[i] = &ProductEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+	if l := len(c.Edges); l > 0 {
+		c.PageInfo.StartCursor = &c.Edges[0].Cursor
+		c.PageInfo.EndCursor = &c.Edges[l-1].Cursor
+	}
+	if c.TotalCount == 0 {
+		c.TotalCount = len(nodes)
+	}
+}
+
+// ProductPaginateOption enables pagination customization.
+type ProductPaginateOption func(*productPager) error
+
+// WithProductOrder configures pagination ordering.
+func WithProductOrder(order *ProductOrder) ProductPaginateOption {
+	if order == nil {
+		order = DefaultProductOrder
+	}
+	o := *order
+	return func(pager *productPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultProductOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithProductFilter configures pagination filter.
+func WithProductFilter(filter func(*ProductQuery) (*ProductQuery, error)) ProductPaginateOption {
+	return func(pager *productPager) error {
+		if filter == nil {
+			return errors.New("ProductQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type productPager struct {
+	order  *ProductOrder
+	filter func(*ProductQuery) (*ProductQuery, error)
+}
+
+func newProductPager(opts []ProductPaginateOption) (*productPager, error) {
+	pager := &productPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultProductOrder
+	}
+	return pager, nil
+}
+
+func (p *productPager) applyFilter(query *ProductQuery) (*ProductQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *productPager) toCursor(pr *Product) Cursor {
+	return p.order.Field.toCursor(pr)
+}
+
+func (p *productPager) applyCursors(query *ProductQuery, after, before *Cursor) *ProductQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultProductOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *productPager) applyOrder(query *ProductQuery, reverse bool) *ProductQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultProductOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultProductOrder.Field.field))
+	}
+	return query
+}
+
+func (p *productPager) orderExpr(reverse bool) sql.Querier {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	return sql.ExprFunc(func(b *sql.Builder) {
+		b.Ident(p.order.Field.field).Pad().WriteString(string(direction))
+		if p.order.Field != DefaultProductOrder.Field {
+			b.Comma().Ident(DefaultProductOrder.Field.field).Pad().WriteString(string(direction))
+		}
+	})
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Product.
+func (pr *ProductQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...ProductPaginateOption,
+) (*ProductConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newProductPager(opts)
+	if err != nil {
+		return nil, err
+	}
+	if pr, err = pager.applyFilter(pr); err != nil {
+		return nil, err
+	}
+	conn := &ProductConnection{Edges: []*ProductEdge{}}
+	ignoredEdges := !hasCollectedField(ctx, edgesField)
+	if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+		hasPagination := after != nil || first != nil || before != nil || last != nil
+		if hasPagination || ignoredEdges {
+			if conn.TotalCount, err = pr.Count(ctx); err != nil {
+				return nil, err
+			}
+			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
+			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
+		}
+	}
+	if ignoredEdges || (first != nil && *first == 0) || (last != nil && *last == 0) {
+		return conn, nil
+	}
+
+	pr = pager.applyCursors(pr, after, before)
+	pr = pager.applyOrder(pr, last != nil)
+	if limit := paginateLimit(first, last); limit != 0 {
+		pr.Limit(limit)
+	}
+	if field := collectedField(ctx, edgesField, nodeField); field != nil {
+		if err := pr.collectField(ctx, graphql.GetOperationContext(ctx), *field, []string{edgesField, nodeField}); err != nil {
+			return nil, err
+		}
+	}
+
+	nodes, err := pr.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	conn.build(nodes, pager, after, first, before, last)
+	return conn, nil
+}
+
+// ProductOrderField defines the ordering field of Product.
+type ProductOrderField struct {
+	field    string
+	toCursor func(*Product) Cursor
+}
+
+// ProductOrder defines the ordering of Product.
+type ProductOrder struct {
+	Direction OrderDirection     `json:"direction"`
+	Field     *ProductOrderField `json:"field"`
+}
+
+// DefaultProductOrder is the default ordering of Product.
+var DefaultProductOrder = &ProductOrder{
+	Direction: OrderDirectionAsc,
+	Field: &ProductOrderField{
+		field: product.FieldID,
+		toCursor: func(pr *Product) Cursor {
+			return Cursor{ID: pr.ID}
+		},
+	},
+}
+
+// ToEdge converts Product into ProductEdge.
+func (pr *Product) ToEdge(order *ProductOrder) *ProductEdge {
+	if order == nil {
+		order = DefaultProductOrder
+	}
+	return &ProductEdge{
+		Node:   pr,
+		Cursor: order.Field.toCursor(pr),
 	}
 }
 

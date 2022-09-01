@@ -5,103 +5,158 @@ package graph
 
 import (
 	"context"
+	"ecobake/ent"
+	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
-	"errors"
 	"fmt"
-	"github.com/jackc/pgconn"
-	"github.com/jackc/pgx/v4"
 	"log"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 )
 
+// Categories is the resolver for the categories field.
+func (r *categoriesResolver) Categories(ctx context.Context, obj ent.Categories) ([]*ent.Category, error) {
+	panic(fmt.Errorf("not implemented: Categories - categories"))
+}
+
+// Errors is the resolver for the errors field.
+func (r *categoriesResolver) Errors(ctx context.Context, obj ent.Categories) ([]models.ListEntityErrorCode, error) {
+	if len(obj) == 0 {
+		return models.AllListEntityErrorCode, nil
+
+	}
+	return nil, nil
+}
+
 // CreatedAt is the resolver for the created_at field.
-func (r *categoryResolver) CreatedAt(ctx context.Context, obj *models.Category) (string, error) {
+func (r *categoryResolver) CreatedAt(ctx context.Context, obj *ent.Category) (string, error) {
 	return obj.CreatedAt.String(), nil
 }
 
 // UpdatedAt is the resolver for the updated_at field.
-func (r *categoryResolver) UpdatedAt(ctx context.Context, obj *models.Category) (string, error) {
+func (r *categoryResolver) UpdatedAt(ctx context.Context, obj *ent.Category) (string, error) {
 	return obj.UpdatedAt.String(), nil
 }
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser) (*models.AccountRegister, error) {
-	data := models.User{
-		UserName:     "",
-		Email:        input.Email,
-		PasswordHash: "",
-		PhoneNumber:  input.PhoneNumber,
-		ProfileImage: "",
-		IsVerified:   false,
-	}
-	//data.PasswordHash = data.Hash()
-	log.Println(data)
-	_, err := r.UserService.CreateUser(ctx, data)
-	if err != nil {
-		return &models.AccountRegister{
-			Errors: []*models.AccountError{},
-		}, nil
-	}
-	return &models.AccountRegister{
-		Errors: []*models.AccountError{{
-			Field:   nil,
-			Message: nil,
-			Code:    models.AccountErrorCodeAccountNotConfirmed,
-		}, {
-			Field:   nil,
-			Message: nil,
-			Code:    models.AccountErrorCodeActivateSuperuserAccount,
-		}},
-		User: &models.User{
-			ID:           0,
-			CreatedAt:    time.Time{},
-			UpdatedAt:    time.Time{},
-			DeletedAt:    time.Time{},
-			UserName:     "",
-			Email:        "",
-			PasswordHash: "",
-			PhoneNumber:  "",
-			Password:     "",
-			ProfileImage: "",
-			IsVerified:   false,
-		},
-	}, nil
-}
+	_, err := r.UserService.CreateUser(ctx, models.User{
 
-// CreateCategory is the resolver for the createCategory field.
-func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (*models.Categories, error) {
-	err := r.CategoryService.CreateCategories(ctx, models.Category{
-		Name: input.Name,
-		Icon: input.Name,
+		Email:       input.Email,
+		Password:    input.Password,
+		PhoneNumber: input.PhoneNumber,
 	})
 	if err != nil {
-		var pgError *pgconn.PgError
-		if errors.Is(pgError, err) {
-
-			return &models.Categories{
-				Categories: nil,
-				Errors:     []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
-			}, nil
-		}
-		return &models.Categories{
-			Categories: nil,
-			Errors:     []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		return &models.AccountRegister{
+			RequiresConfirmation: new(bool),
+			Errors: []*models.AccountError{
+				{
+					Field:   "user.Password",
+					Message: "incorrect password ",
+					Code:    models.AccountErrorCodeGraphqlError,
+				},
+			},
+			User: nil,
 		}, nil
 	}
 	return nil, nil
+}
 
+// CreateCategory is the resolver for the createCategory field.
+func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (ent.Categories, error) {
+	panic(fmt.Errorf("not implemented: CreateCategory - createCategory"))
 }
 
 // TokenCreate is the resolver for the tokenCreate field.
 func (r *mutationResolver) TokenCreate(ctx context.Context, email string, password string) (*models.CreateToken, error) {
-	panic(fmt.Errorf("not implemented: TokenCreate - tokenCreate"))
+	user, err := r.UserService.GetUserByEmail(ctx, email)
+	if err != nil {
+		return &models.CreateToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "user",
+					Message: "user not found",
+					Code:    models.AccountErrorCodeNotFound,
+				},
+			},
+		}, nil
+	}
+	m := models.User{PasswordHash: user.PasswordHash}
+	ok := m.CheckPasswordHash(password)
+	log.Println(ok)
+	if !ok {
+		return &models.CreateToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "user.Password",
+					Message: "incorrect password ",
+					Code:    models.AccountErrorCodeInvalidPassword,
+				},
+			},
+		}, nil
+	}
+	duration := 30 * time.Hour
+	rtduration := time.Duration(time.Now().Add(time.Hour * 100).Unix())
+	accessToken, err := r.TokenService.CreateToken(user.UserName, user.Email, duration, rtduration, user.ID)
+	if err != nil {
+		return &models.CreateToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "token",
+					Message: "unable to create token",
+					Code:    models.AccountErrorCodeGraphqlError,
+				},
+			},
+		}, nil
+	}
+	return &models.CreateToken{
+		Token:        accessToken,
+		RefreshToken: accessToken,
+		User: &ent.User{
+			ID:           int(user.ID),
+			UserName:     user.UserName,
+			CreatedAt:    user.CreatedAt,
+			PhoneNumber:  user.PhoneNumber,
+			IsVerified:   user.IsVerified,
+			ProfileImage: user.ProfileImage,
+			Email:        user.Email,
+		},
+		Errors: nil,
+	}, err
 }
 
 // TokenRefresh is the resolver for the tokenRefresh field.
-func (r *mutationResolver) TokenRefresh(ctx context.Context, csrfToken *string, refreshToken *string) (*models.RefreshToken, error) {
-	panic(fmt.Errorf("not implemented: TokenRefresh - tokenRefresh"))
+func (r *mutationResolver) TokenRefresh(_ context.Context, refreshToken string) (*models.RefreshToken, error) {
+	payload, err := r.TokenService.VerifyToken(refreshToken)
+	if err != nil {
+		return &models.RefreshToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "refresh token ",
+					Message: "provided token has expired",
+					Code:    models.AccountErrorCodeJwtInvalidToken,
+				},
+			},
+		}, nil
+	}
+	duration := 30 * time.Hour
+	rtduration := time.Duration(time.Now().Add(time.Hour * 100).Unix())
+	accessToken, err := r.TokenService.CreateToken(payload.Username, payload.Email, duration, rtduration, payload.ID)
+	if err != nil {
+		return &models.RefreshToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "token",
+					Message: "unable to create token",
+					Code:    models.AccountErrorCodeGraphqlError,
+				},
+			},
+		}, nil
+	}
+	return &models.RefreshToken{
+		Token: accessToken,
+	}, nil
 }
 
 // TokenVerify is the resolver for the tokenVerify field.
@@ -175,82 +230,54 @@ func (r *mutationResolver) UserAvatarDelete(ctx context.Context) (*models.UserAv
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context) (*models.Users, error) {
-	_, users, err := r.UserService.GetAllUsers(ctx)
+func (r *queryResolver) Users(ctx context.Context) (ent.Users, error) {
+	users, err := r.Client.User.Query().All(ctx)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return &models.Users{
-				Users:  nil,
-				Errors: []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
-			}, nil
-		}
-		return &models.Users{
-			Users:  nil,
-			Errors: []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
-		}, nil
+		return nil, err
 	}
-	m := make([]*models.User, len(users))
-	for i, user := range users {
-		m[i] = &models.User{
-			ID:           user.ID,
-			CreatedAt:    user.CreatedAt,
-			UserName:     user.UserName,
-			Email:        user.Email,
-			PhoneNumber:  user.PhoneNumber,
-			ProfileImage: user.ProfileImage,
-			IsVerified:   user.IsVerified,
-		}
-	}
-	return &models.Users{
-		Users:  m,
-		Errors: nil,
-	}, nil
+	return users, nil
 }
 
 // Categories is the resolver for the categories field.
-func (r *queryResolver) Categories(ctx context.Context) (*models.Categories, error) {
-	cat, _, err := r.CategoryService.ListCategories(ctx)
-	if err != nil {
-		if errors.Is(pgx.ErrNoRows, err) {
-			return &models.Categories{
-				Categories: nil,
-				Errors:     []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
-			}, nil
-		}
-		return &models.Categories{
-			Categories: nil,
-			Errors:     []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
-		}, nil
-	}
-	m := make([]*models.Category, len(cat))
-	for i, category := range cat {
-		m[i] = &models.Category{
-			ID:        category.ID,
-			CreatedAt: category.CreatedAt,
-			Name:      category.Name,
-			Icon:      category.Icon,
-		}
-	}
-	return &models.Categories{
-		Categories: m,
-		Errors:     nil,
-	}, nil
+func (r *queryResolver) Categories(ctx context.Context) (ent.Categories, error) {
+	panic(fmt.Errorf("not implemented: Categories - categories"))
 }
 
 // UserCreated is the resolver for the userCreated field.
-func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan *models.User, error) {
+func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan ent.User, error) {
 	panic(fmt.Errorf("not implemented: UserCreated - userCreated"))
 }
 
 // CreatedAt is the resolver for the created_at field.
-func (r *userResolver) CreatedAt(ctx context.Context, obj *models.User) (string, error) {
+func (r *userResolver) CreatedAt(ctx context.Context, obj *ent.User) (string, error) {
 	return obj.CreatedAt.String(), nil
 }
 
 // UpdatedAt is the resolver for the updated_at field.
-func (r *userResolver) UpdatedAt(ctx context.Context, obj *models.User) (string, error) {
+func (r *userResolver) UpdatedAt(ctx context.Context, obj *ent.User) (string, error) {
 	return obj.UpdatedAt.String(), nil
 }
+
+// Users is the resolver for the users field.
+func (r *usersResolver) Users(ctx context.Context, obj ent.Users) ([]*ent.User, error) {
+	users, err := r.Client.User.Query().All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+// Errors is the resolver for the errors field.
+func (r *usersResolver) Errors(ctx context.Context, obj ent.Users) ([]models.ListEntityErrorCode, error) {
+	if len(obj) != 0 {
+		return nil, nil
+	}
+
+	return models.AllListEntityErrorCode, nil
+}
+
+// Categories returns generated.CategoriesResolver implementation.
+func (r *Resolver) Categories() generated.CategoriesResolver { return &categoriesResolver{r} }
 
 // Category returns generated.CategoryResolver implementation.
 func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
@@ -267,8 +294,13 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+// Users returns generated.UsersResolver implementation.
+func (r *Resolver) Users() generated.UsersResolver { return &usersResolver{r} }
+
+type categoriesResolver struct{ *Resolver }
 type categoryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+type usersResolver struct{ *Resolver }

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"ecobake/cmd/config"
+	"ecobake/ent"
 	"ecobake/internal/services"
 )
 
@@ -16,7 +17,7 @@ type Repository struct {
 	natsService     services.NatsService
 	searchService   services.SearchService
 	CategoryService services.CategoriesService
-
+	Client          *ent.Client
 	//paymentService services.PaymentsService
 }
 
@@ -30,6 +31,7 @@ func NewRepo(
 	tokenService services.TokenService,
 	searchService services.SearchService,
 	categoryService services.CategoriesService,
+	client *ent.Client,
 
 	//paymentService services.PaymentsService,
 
@@ -44,6 +46,7 @@ func NewRepo(
 		natsService:     natService,
 		searchService:   searchService,
 		CategoryService: categoryService,
+		Client:          client,
 		//paymentService: paymentService,
 	}
 }

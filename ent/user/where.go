@@ -228,6 +228,20 @@ func UserNameHasSuffix(v string) predicate.User {
 	})
 }
 
+// UserNameIsNil applies the IsNil predicate on the "user_name" field.
+func UserNameIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldUserName)))
+	})
+}
+
+// UserNameNotNil applies the NotNil predicate on the "user_name" field.
+func UserNameNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldUserName)))
+	})
+}
+
 // UserNameEqualFold applies the EqualFold predicate on the "user_name" field.
 func UserNameEqualFold(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {

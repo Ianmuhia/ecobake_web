@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"ecobake/ent"
 	"ecobake/internal/services"
 )
 
@@ -9,6 +10,7 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
+	Client          *ent.Client
 	StorageService  services.FileStorageService
 	NatService      services.NatsService
 	UserService     services.UsersService
@@ -18,6 +20,7 @@ type Resolver struct {
 }
 
 func NewResolver(
+	client *ent.Client,
 	storageService services.FileStorageService,
 	natService services.NatsService,
 	userService services.UsersService,
@@ -27,6 +30,7 @@ func NewResolver(
 
 ) *Resolver {
 	return &Resolver{
+		Client:          client,
 		StorageService:  storageService,
 		NatService:      natService,
 		UserService:     userService,

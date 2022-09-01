@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/product"
 	"ecobake/ent/user"
 	"errors"
 	"fmt"
@@ -33,6 +34,7 @@ type OrderFunc func(*sql.Selector)
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
 		category.Table: category.ValidColumn,
+		product.Table:  product.ValidColumn,
 		user.Table:     user.ValidColumn,
 	}
 	check, ok := checks[table]

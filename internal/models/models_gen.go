@@ -15,8 +15,8 @@ type AccountDelete struct {
 }
 
 type AccountError struct {
-	Field   *string          `json:"field"`
-	Message *string          `json:"message"`
+	Field   string           `json:"field"`
+	Message string           `json:"message"`
 	Code    AccountErrorCode `json:"code"`
 }
 
@@ -70,8 +70,6 @@ type Address struct {
 	IsDefaultBillingAddress  *bool   `json:"isDefaultBillingAddress"`
 }
 
-func (Address) IsNode() {}
-
 type CheckoutError struct {
 	Field    *string           `json:"field"`
 	Message  *string           `json:"message"`
@@ -96,9 +94,8 @@ type CreateCategory struct {
 }
 
 type CreateToken struct {
-	Token        *string         `json:"token"`
-	RefreshToken *string         `json:"refreshToken"`
-	CsrfToken    *string         `json:"csrfToken"`
+	Token        string          `json:"token"`
+	RefreshToken string          `json:"refreshToken"`
 	User         *ent.User       `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
@@ -123,9 +120,9 @@ type Image struct {
 }
 
 type LoginResp struct {
-	User    *ent.User `json:"user"`
-	Refresh *string   `json:"refresh"`
-	Access  *string   `json:"access"`
+	User    ent.User `json:"user"`
+	Refresh *string  `json:"refresh"`
+	Access  *string  `json:"access"`
 }
 
 type LoginUser struct {
@@ -146,7 +143,7 @@ type PasswordChange struct {
 }
 
 type RefreshToken struct {
-	Token  *string         `json:"token"`
+	Token  string          `json:"token"`
 	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
@@ -163,7 +160,6 @@ type RequestPasswordReset struct {
 type SetPassword struct {
 	Token        *string         `json:"token"`
 	RefreshToken *string         `json:"refreshToken"`
-	CsrfToken    *string         `json:"csrfToken"`
 	User         *ent.User       `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
