@@ -79,7 +79,6 @@ type CheckoutError struct {
 }
 
 type ConfirmAccount struct {
-	User   *ent.User       `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
@@ -137,9 +136,8 @@ type NewUser struct {
 }
 
 type PasswordChange struct {
-	User          *ent.User       `json:"user"`
-	AccountErrors []*AccountError `json:"accountErrors"`
-	Errors        []*AccountError `json:"errors"`
+	User   *ent.User       `json:"user"`
+	Errors []*AccountError `json:"errors"`
 }
 
 type RefreshToken struct {
@@ -154,7 +152,8 @@ type RequestEmailChange struct {
 }
 
 type RequestPasswordReset struct {
-	Errors []*AccountError `json:"errors"`
+	Errors     []*AccountError `json:"errors"`
+	NatsErrors NatsErrorCodes  `json:"nats_errors"`
 }
 
 type SetPassword struct {
@@ -417,6 +416,167 @@ func (e *ListEntityErrorCode) UnmarshalGQL(v interface{}) error {
 }
 
 func (e ListEntityErrorCode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type NatsErrorCodes string
+
+const (
+	NatsErrorCodesErrConnectionClosed                                    NatsErrorCodes = "ERR_CONNECTION_CLOSED"
+	NatsErrorCodesErrAuthentication                                      NatsErrorCodes = "ERR_AUTHENTICATION"
+	NatsErrorCodesErrAuthTimeout                                         NatsErrorCodes = "ERR_AUTH_TIMEOUT"
+	NatsErrorCodesErrAuthExpired                                         NatsErrorCodes = "ERR_AUTH_EXPIRED"
+	NatsErrorCodesErrMaxPayload                                          NatsErrorCodes = "ERR_MAX_PAYLOAD"
+	NatsErrorCodesErrMaxControlLine                                      NatsErrorCodes = "ERR_MAX_CONTROL_LINE"
+	NatsErrorCodesErrReservedPublishSubject                              NatsErrorCodes = "ERR_RESERVED_PUBLISH_SUBJECT"
+	NatsErrorCodesErrBadPublishSubject                                   NatsErrorCodes = "ERR_BAD_PUBLISH_SUBJECT"
+	NatsErrorCodesErrBadSubject                                          NatsErrorCodes = "ERR_BAD_SUBJECT"
+	NatsErrorCodesErrBadQualifier                                        NatsErrorCodes = "ERR_BAD_QUALIFIER"
+	NatsErrorCodesErrBadClientProtocol                                   NatsErrorCodes = "ERR_BAD_CLIENT_PROTOCOL"
+	NatsErrorCodesErrTooManyConnections                                  NatsErrorCodes = "ERR_TOO_MANY_CONNECTIONS"
+	NatsErrorCodesErrTooManyAccountConnections                           NatsErrorCodes = "ERR_TOO_MANY_ACCOUNT_CONNECTIONS"
+	NatsErrorCodesErrTooManySubs                                         NatsErrorCodes = "ERR_TOO_MANY_SUBS"
+	NatsErrorCodesErrTooManySubTokens                                    NatsErrorCodes = "ERR_TOO_MANY_SUB_TOKENS"
+	NatsErrorCodesErrClientConnectedToRoutePort                          NatsErrorCodes = "ERR_CLIENT_CONNECTED_TO_ROUTE_PORT"
+	NatsErrorCodesErrClientConnectedToLeafNodePort                       NatsErrorCodes = "ERR_CLIENT_CONNECTED_TO_LEAF_NODE_PORT"
+	NatsErrorCodesErrLeafNodeHasSameClusterName                          NatsErrorCodes = "ERR_LEAF_NODE_HAS_SAME_CLUSTER_NAME"
+	NatsErrorCodesErrLeafNodeDisabled                                    NatsErrorCodes = "ERR_LEAF_NODE_DISABLED"
+	NatsErrorCodesErrConnectedToWrongPort                                NatsErrorCodes = "ERR_CONNECTED_TO_WRONG_PORT"
+	NatsErrorCodesErrAccountExists                                       NatsErrorCodes = "ERR_ACCOUNT_EXISTS"
+	NatsErrorCodesErrBadAccount                                          NatsErrorCodes = "ERR_BAD_ACCOUNT"
+	NatsErrorCodesErrReservedAccount                                     NatsErrorCodes = "ERR_RESERVED_ACCOUNT"
+	NatsErrorCodesErrMissingAccount                                      NatsErrorCodes = "ERR_MISSING_ACCOUNT"
+	NatsErrorCodesErrMissingService                                      NatsErrorCodes = "ERR_MISSING_SERVICE"
+	NatsErrorCodesErrBadServiceType                                      NatsErrorCodes = "ERR_BAD_SERVICE_TYPE"
+	NatsErrorCodesErrBadSampling                                         NatsErrorCodes = "ERR_BAD_SAMPLING"
+	NatsErrorCodesErrAccountValidation                                   NatsErrorCodes = "ERR_ACCOUNT_VALIDATION"
+	NatsErrorCodesErrAccountExpired                                      NatsErrorCodes = "ERR_ACCOUNT_EXPIRED"
+	NatsErrorCodesErrNoAccountResolver                                   NatsErrorCodes = "ERR_NO_ACCOUNT_RESOLVER"
+	NatsErrorCodesErrAccountResolverUpdateTooSoon                        NatsErrorCodes = "ERR_ACCOUNT_RESOLVER_UPDATE_TOO_SOON"
+	NatsErrorCodesErrAccountResolverSameClaims                           NatsErrorCodes = "ERR_ACCOUNT_RESOLVER_SAME_CLAIMS"
+	NatsErrorCodesErrStreamImportAuthorization                           NatsErrorCodes = "ERR_STREAM_IMPORT_AUTHORIZATION"
+	NatsErrorCodesErrStreamImportBadPrefix                               NatsErrorCodes = "ERR_STREAM_IMPORT_BAD_PREFIX"
+	NatsErrorCodesErrStreamImportDuplicate                               NatsErrorCodes = "ERR_STREAM_IMPORT_DUPLICATE"
+	NatsErrorCodesErrServiceImportAuthorization                          NatsErrorCodes = "ERR_SERVICE_IMPORT_AUTHORIZATION"
+	NatsErrorCodesErrImportFormsCycle                                    NatsErrorCodes = "ERR_IMPORT_FORMS_CYCLE"
+	NatsErrorCodesErrCycleSearchDepth                                    NatsErrorCodes = "ERR_CYCLE_SEARCH_DEPTH"
+	NatsErrorCodesErrClientOrRouteConnectedToGatewayPort                 NatsErrorCodes = "ERR_CLIENT_OR_ROUTE_CONNECTED_TO_GATEWAY_PORT"
+	NatsErrorCodesErrWrongGateway                                        NatsErrorCodes = "ERR_WRONG_GATEWAY"
+	NatsErrorCodesErrNoSysAccount                                        NatsErrorCodes = "ERR_NO_SYS_ACCOUNT"
+	NatsErrorCodesErrRevocation                                          NatsErrorCodes = "ERR_REVOCATION"
+	NatsErrorCodesErrServerNotRunning                                    NatsErrorCodes = "ERR_SERVER_NOT_RUNNING"
+	NatsErrorCodesErrBadMsgHeader                                        NatsErrorCodes = "ERR_BAD_MSG_HEADER"
+	NatsErrorCodesErrMsgHeadersNotSupported                              NatsErrorCodes = "ERR_MSG_HEADERS_NOT_SUPPORTED"
+	NatsErrorCodesErrNoRespondersRequiresHeaders                         NatsErrorCodes = "ERR_NO_RESPONDERS_REQUIRES_HEADERS"
+	NatsErrorCodesErrClusterNameConfigConflict                           NatsErrorCodes = "ERR_CLUSTER_NAME_CONFIG_CONFLICT"
+	NatsErrorCodesErrClusterNameRemoteConflict                           NatsErrorCodes = "ERR_CLUSTER_NAME_REMOTE_CONFLICT"
+	NatsErrorCodesErrMalformedSubject                                    NatsErrorCodes = "ERR_MALFORMED_SUBJECT"
+	NatsErrorCodesErrSubscribePermissionViolation                        NatsErrorCodes = "ERR_SUBSCRIBE_PERMISSION_VIOLATION"
+	NatsErrorCodesErrNoTransforms                                        NatsErrorCodes = "ERR_NO_TRANSFORMS"
+	NatsErrorCodesErrCertNotPinned                                       NatsErrorCodes = "ERR_CERT_NOT_PINNED"
+	NatsErrorCodesErrDuplicateServerName                                 NatsErrorCodes = "ERR_DUPLICATE_SERVER_NAME"
+	NatsErrorCodesErrMinimumVersionRequired                              NatsErrorCodes = "ERR_MINIMUM_VERSION_REQUIRED"
+	NatsErrorCodesErrInvalidMappingDestination                           NatsErrorCodes = "ERR_INVALID_MAPPING_DESTINATION"
+	NatsErrorCodesErrInvalidMappingDestinationSubject                    NatsErrorCodes = "ERR_INVALID_MAPPING_DESTINATION_SUBJECT"
+	NatsErrorCodesErrMappingDestinationNotUsingAllWildcards              NatsErrorCodes = "ERR_MAPPING_DESTINATION_NOT_USING_ALL_WILDCARDS"
+	NatsErrorCodesErrUnknownMappingDestinationFunction                   NatsErrorCodes = "ERR_UNKNOWN_MAPPING_DESTINATION_FUNCTION"
+	NatsErrorCodesErrorMappingDestinationFunctionWildcardIndexOutOfRange NatsErrorCodes = "ERROR_MAPPING_DESTINATION_FUNCTION_WILDCARD_INDEX_OUT_OF_RANGE"
+	NatsErrorCodesErrorMappingDestinationFunctionNotEnoughArguments      NatsErrorCodes = "ERROR_MAPPING_DESTINATION_FUNCTION_NOT_ENOUGH_ARGUMENTS"
+	NatsErrorCodesErrorMappingDestinationFunctionInvalidArgument         NatsErrorCodes = "ERROR_MAPPING_DESTINATION_FUNCTION_INVALID_ARGUMENT"
+	NatsErrorCodesErrorMappingDestinationFunctionTooManyArguments        NatsErrorCodes = "ERROR_MAPPING_DESTINATION_FUNCTION_TOO_MANY_ARGUMENTS"
+)
+
+var AllNatsErrorCodes = []NatsErrorCodes{
+	NatsErrorCodesErrConnectionClosed,
+	NatsErrorCodesErrAuthentication,
+	NatsErrorCodesErrAuthTimeout,
+	NatsErrorCodesErrAuthExpired,
+	NatsErrorCodesErrMaxPayload,
+	NatsErrorCodesErrMaxControlLine,
+	NatsErrorCodesErrReservedPublishSubject,
+	NatsErrorCodesErrBadPublishSubject,
+	NatsErrorCodesErrBadSubject,
+	NatsErrorCodesErrBadQualifier,
+	NatsErrorCodesErrBadClientProtocol,
+	NatsErrorCodesErrTooManyConnections,
+	NatsErrorCodesErrTooManyAccountConnections,
+	NatsErrorCodesErrTooManySubs,
+	NatsErrorCodesErrTooManySubTokens,
+	NatsErrorCodesErrClientConnectedToRoutePort,
+	NatsErrorCodesErrClientConnectedToLeafNodePort,
+	NatsErrorCodesErrLeafNodeHasSameClusterName,
+	NatsErrorCodesErrLeafNodeDisabled,
+	NatsErrorCodesErrConnectedToWrongPort,
+	NatsErrorCodesErrAccountExists,
+	NatsErrorCodesErrBadAccount,
+	NatsErrorCodesErrReservedAccount,
+	NatsErrorCodesErrMissingAccount,
+	NatsErrorCodesErrMissingService,
+	NatsErrorCodesErrBadServiceType,
+	NatsErrorCodesErrBadSampling,
+	NatsErrorCodesErrAccountValidation,
+	NatsErrorCodesErrAccountExpired,
+	NatsErrorCodesErrNoAccountResolver,
+	NatsErrorCodesErrAccountResolverUpdateTooSoon,
+	NatsErrorCodesErrAccountResolverSameClaims,
+	NatsErrorCodesErrStreamImportAuthorization,
+	NatsErrorCodesErrStreamImportBadPrefix,
+	NatsErrorCodesErrStreamImportDuplicate,
+	NatsErrorCodesErrServiceImportAuthorization,
+	NatsErrorCodesErrImportFormsCycle,
+	NatsErrorCodesErrCycleSearchDepth,
+	NatsErrorCodesErrClientOrRouteConnectedToGatewayPort,
+	NatsErrorCodesErrWrongGateway,
+	NatsErrorCodesErrNoSysAccount,
+	NatsErrorCodesErrRevocation,
+	NatsErrorCodesErrServerNotRunning,
+	NatsErrorCodesErrBadMsgHeader,
+	NatsErrorCodesErrMsgHeadersNotSupported,
+	NatsErrorCodesErrNoRespondersRequiresHeaders,
+	NatsErrorCodesErrClusterNameConfigConflict,
+	NatsErrorCodesErrClusterNameRemoteConflict,
+	NatsErrorCodesErrMalformedSubject,
+	NatsErrorCodesErrSubscribePermissionViolation,
+	NatsErrorCodesErrNoTransforms,
+	NatsErrorCodesErrCertNotPinned,
+	NatsErrorCodesErrDuplicateServerName,
+	NatsErrorCodesErrMinimumVersionRequired,
+	NatsErrorCodesErrInvalidMappingDestination,
+	NatsErrorCodesErrInvalidMappingDestinationSubject,
+	NatsErrorCodesErrMappingDestinationNotUsingAllWildcards,
+	NatsErrorCodesErrUnknownMappingDestinationFunction,
+	NatsErrorCodesErrorMappingDestinationFunctionWildcardIndexOutOfRange,
+	NatsErrorCodesErrorMappingDestinationFunctionNotEnoughArguments,
+	NatsErrorCodesErrorMappingDestinationFunctionInvalidArgument,
+	NatsErrorCodesErrorMappingDestinationFunctionTooManyArguments,
+}
+
+func (e NatsErrorCodes) IsValid() bool {
+	switch e {
+	case NatsErrorCodesErrConnectionClosed, NatsErrorCodesErrAuthentication, NatsErrorCodesErrAuthTimeout, NatsErrorCodesErrAuthExpired, NatsErrorCodesErrMaxPayload, NatsErrorCodesErrMaxControlLine, NatsErrorCodesErrReservedPublishSubject, NatsErrorCodesErrBadPublishSubject, NatsErrorCodesErrBadSubject, NatsErrorCodesErrBadQualifier, NatsErrorCodesErrBadClientProtocol, NatsErrorCodesErrTooManyConnections, NatsErrorCodesErrTooManyAccountConnections, NatsErrorCodesErrTooManySubs, NatsErrorCodesErrTooManySubTokens, NatsErrorCodesErrClientConnectedToRoutePort, NatsErrorCodesErrClientConnectedToLeafNodePort, NatsErrorCodesErrLeafNodeHasSameClusterName, NatsErrorCodesErrLeafNodeDisabled, NatsErrorCodesErrConnectedToWrongPort, NatsErrorCodesErrAccountExists, NatsErrorCodesErrBadAccount, NatsErrorCodesErrReservedAccount, NatsErrorCodesErrMissingAccount, NatsErrorCodesErrMissingService, NatsErrorCodesErrBadServiceType, NatsErrorCodesErrBadSampling, NatsErrorCodesErrAccountValidation, NatsErrorCodesErrAccountExpired, NatsErrorCodesErrNoAccountResolver, NatsErrorCodesErrAccountResolverUpdateTooSoon, NatsErrorCodesErrAccountResolverSameClaims, NatsErrorCodesErrStreamImportAuthorization, NatsErrorCodesErrStreamImportBadPrefix, NatsErrorCodesErrStreamImportDuplicate, NatsErrorCodesErrServiceImportAuthorization, NatsErrorCodesErrImportFormsCycle, NatsErrorCodesErrCycleSearchDepth, NatsErrorCodesErrClientOrRouteConnectedToGatewayPort, NatsErrorCodesErrWrongGateway, NatsErrorCodesErrNoSysAccount, NatsErrorCodesErrRevocation, NatsErrorCodesErrServerNotRunning, NatsErrorCodesErrBadMsgHeader, NatsErrorCodesErrMsgHeadersNotSupported, NatsErrorCodesErrNoRespondersRequiresHeaders, NatsErrorCodesErrClusterNameConfigConflict, NatsErrorCodesErrClusterNameRemoteConflict, NatsErrorCodesErrMalformedSubject, NatsErrorCodesErrSubscribePermissionViolation, NatsErrorCodesErrNoTransforms, NatsErrorCodesErrCertNotPinned, NatsErrorCodesErrDuplicateServerName, NatsErrorCodesErrMinimumVersionRequired, NatsErrorCodesErrInvalidMappingDestination, NatsErrorCodesErrInvalidMappingDestinationSubject, NatsErrorCodesErrMappingDestinationNotUsingAllWildcards, NatsErrorCodesErrUnknownMappingDestinationFunction, NatsErrorCodesErrorMappingDestinationFunctionWildcardIndexOutOfRange, NatsErrorCodesErrorMappingDestinationFunctionNotEnoughArguments, NatsErrorCodesErrorMappingDestinationFunctionInvalidArgument, NatsErrorCodesErrorMappingDestinationFunctionTooManyArguments:
+		return true
+	}
+	return false
+}
+
+func (e NatsErrorCodes) String() string {
+	return string(e)
+}
+
+func (e *NatsErrorCodes) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = NatsErrorCodes(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid NatsErrorCodes", str)
+	}
+	return nil
+}
+
+func (e NatsErrorCodes) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

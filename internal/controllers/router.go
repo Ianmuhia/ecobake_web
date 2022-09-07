@@ -49,22 +49,13 @@ func (r *Repository) SetupRouter() *gin.Engine {
 		ExposeHeaders:    []string{"Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With"},
 		AllowCredentials: true,
 	}))
-	//router.Use(cors.New(cors.Options{
-	//	AllowedOrigins:         nil,
-	//	AllowOriginFunc:        nil,
-	//	AllowOriginRequestFunc: nil,
-	//	AllowedMethods:         nil,
-	//	AllowedHeaders:         nil,
-	//	ExposedHeaders:         nil,
-	//	MaxAge:                 0,
-	//	AllowCredentials:       false,
-	//	OptionsPassthrough:     false,
-	//	OptionsSuccessStatus:   0,
-	//	Debug:                  false,
-	//}).HandlerFunc())
 
 	_ = router.SetTrustedProxies([]string{"*", "localhost"})
 
+	//router.Any("/query", func(c *gin.Context) {
+	//	r.AuthMiddleware()
+	//	r.playgroundHandler()
+	//})
 	router.Any("/query", r.graphqlHandler())
 	router.GET("/", r.playgroundHandler())
 

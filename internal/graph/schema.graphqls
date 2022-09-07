@@ -2,13 +2,25 @@
 #
 # https://gqlgen.com/getting-started/
 
+# https://gqlgen.com/getting-started/
+directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+# new directive
+directive @auth on FIELD_DEFINITION
+
+scalar Any
+
 type Query {
-    users: Users!
+    users: Users! @goField(forceResolver: true) @auth
     categories: Categories
 }
 type Mutation {
     createUser(input:NewUser!):AccountRegister
-    createCategory(input:CreateCategory!):Categories
+    createCategory(input:CreateCategory!):Category
+    updateCategory(input:CreateCategory!):Category
+    deleteCategory(input:Int!):Any
+
+
 
     # Create JWT token.
     tokenCreate(
@@ -37,19 +49,15 @@ type Mutation {
 
     # Sends an email with the account password modification link.
     requestPasswordReset(
-        # Slug of a channel which will be used for notify user. Optional when only one channel exists.
-        channel: String
         # Email of the user that will be used for password recovery.
         email: String!
-        # URL of a view where users should be redirected to reset the password. URL in RFC 1808 format.
-        redirectUrl: String!
     ): RequestPasswordReset
     # Confirm user account with token sent by email during registration.
     confirmAccount(
         # E-mail of the user performing account confirmation.
         email: String!
         # A one-time token required to confirm the account.
-        token: String!
+        otp: String!
     ): ConfirmAccount
     # Sets the user's password from the token sent by email using the RequestPasswordReset mutation.
     setPassword(
@@ -68,6 +76,8 @@ type Mutation {
         newPassword: String!
         # Current user password.
         oldPassword: String!
+        # Access token.
+        accessToken: String!
     ): PasswordChange
     # Request email change of the logged in user.
     #
@@ -129,7 +139,7 @@ type Mutation {
     # Deletes a user avatar. Only for staff members.
     #
     # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
-    userAvatarDelete: UserAvatarDelete
+    userAvatarDelete(token: String!): UserAvatarDelete
     # Activate or deactivate users.
     #
 
@@ -225,10 +235,12 @@ type AccountError {
     # The error code.
     code: AccountErrorCode!
 
+
 }
 # Sends an email with the account password modification link.
 type RequestPasswordReset {
     errors: [AccountError!]!
+    nats_errors:NatsErrorCodes!
 }
 
 
@@ -269,6 +281,71 @@ enum AccountErrorCode {
     ACCOUNT_NOT_CONFIRMED
 }
 
+enum NatsErrorCodes{
+    ERR_CONNECTION_CLOSED
+    ERR_AUTHENTICATION
+    ERR_AUTH_TIMEOUT
+    ERR_AUTH_EXPIRED
+    ERR_MAX_PAYLOAD
+    ERR_MAX_CONTROL_LINE
+    ERR_RESERVED_PUBLISH_SUBJECT
+    ERR_BAD_PUBLISH_SUBJECT
+    ERR_BAD_SUBJECT
+    ERR_BAD_QUALIFIER
+    ERR_BAD_CLIENT_PROTOCOL
+    ERR_TOO_MANY_CONNECTIONS
+    ERR_TOO_MANY_ACCOUNT_CONNECTIONS
+    ERR_TOO_MANY_SUBS
+    ERR_TOO_MANY_SUB_TOKENS
+    ERR_CLIENT_CONNECTED_TO_ROUTE_PORT
+    ERR_CLIENT_CONNECTED_TO_LEAF_NODE_PORT
+    ERR_LEAF_NODE_HAS_SAME_CLUSTER_NAME
+    ERR_LEAF_NODE_DISABLED
+    ERR_CONNECTED_TO_WRONG_PORT
+    ERR_ACCOUNT_EXISTS
+    ERR_BAD_ACCOUNT
+    ERR_RESERVED_ACCOUNT
+    ERR_MISSING_ACCOUNT
+    ERR_MISSING_SERVICE
+    ERR_BAD_SERVICE_TYPE
+    ERR_BAD_SAMPLING
+    ERR_ACCOUNT_VALIDATION
+    ERR_ACCOUNT_EXPIRED
+    ERR_NO_ACCOUNT_RESOLVER
+    ERR_ACCOUNT_RESOLVER_UPDATE_TOO_SOON
+    ERR_ACCOUNT_RESOLVER_SAME_CLAIMS
+    ERR_STREAM_IMPORT_AUTHORIZATION
+    ERR_STREAM_IMPORT_BAD_PREFIX
+    ERR_STREAM_IMPORT_DUPLICATE
+    ERR_SERVICE_IMPORT_AUTHORIZATION
+    ERR_IMPORT_FORMS_CYCLE
+    ERR_CYCLE_SEARCH_DEPTH
+    ERR_CLIENT_OR_ROUTE_CONNECTED_TO_GATEWAY_PORT
+    ERR_WRONG_GATEWAY
+    ERR_NO_SYS_ACCOUNT
+    ERR_REVOCATION
+    ERR_SERVER_NOT_RUNNING
+    ERR_BAD_MSG_HEADER
+    ERR_MSG_HEADERS_NOT_SUPPORTED
+    ERR_NO_RESPONDERS_REQUIRES_HEADERS
+    ERR_CLUSTER_NAME_CONFIG_CONFLICT
+    ERR_CLUSTER_NAME_REMOTE_CONFLICT
+    ERR_MALFORMED_SUBJECT
+    ERR_SUBSCRIBE_PERMISSION_VIOLATION
+    ERR_NO_TRANSFORMS
+    ERR_CERT_NOT_PINNED
+    ERR_DUPLICATE_SERVER_NAME
+    ERR_MINIMUM_VERSION_REQUIRED
+    ERR_INVALID_MAPPING_DESTINATION
+    ERR_INVALID_MAPPING_DESTINATION_SUBJECT
+    ERR_MAPPING_DESTINATION_NOT_USING_ALL_WILDCARDS
+    ERR_UNKNOWN_MAPPING_DESTINATION_FUNCTION
+    ERROR_MAPPING_DESTINATION_FUNCTION_WILDCARD_INDEX_OUT_OF_RANGE
+    ERROR_MAPPING_DESTINATION_FUNCTION_NOT_ENOUGH_ARGUMENTS
+    ERROR_MAPPING_DESTINATION_FUNCTION_INVALID_ARGUMENT
+    ERROR_MAPPING_DESTINATION_FUNCTION_TOO_MANY_ARGUMENTS
+
+}
 input AccountInput {
     # Given name.
     firstName: String
@@ -332,8 +409,6 @@ type CreateToken {
 
 # Confirm user account with token sent by email during registration.
 type ConfirmAccount {
-    # An activated user account.
-    user: User
     errors: [AccountError!]!
 }
 # Represents an image.
@@ -390,8 +465,6 @@ type CheckoutError {
 type PasswordChange {
     # A user instance with a new password.
     user: User
-    accountErrors: [AccountError!]!
-
     errors: [AccountError!]!
 }
 enum  ListEntityErrorCode {

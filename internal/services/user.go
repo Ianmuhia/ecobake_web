@@ -175,21 +175,9 @@ func (us *usersService) UpdateUserImage(ctx context.Context, email, imageName st
 }
 func (us *usersService) UpdateUserStatus(ctx context.Context, email string) (*models.User, error) {
 	_, err := us.client.User.Update().Where(user2.Email(email)).SetIsVerified(true).Save(ctx)
-
-	//user, err := us.q.UpdateUserStatus(ctx, email)
 	if err != nil {
 		return new(models.User), err
 	}
-	//return &models.User{
-	//	ID:           user.ID,
-	//	CreatedAt:    user.CreatedAt.Time,
-	//	UpdatedAt:    user.UpdatedAt.Time,
-	//	UserName:     user.UserName,
-	//	PhoneNumber:  user.PhoneNumber,
-	//	Email:        user.Email,
-	//	ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage.String),
-	//	IsVerified:   user.IsVerified.Bool,
-	//}, nil
 	return new(models.User), nil
 }
 func (us *usersService) UpdateUserDetails(ctx context.Context, id int64, userModel *models.User) (*models.User, error) {
@@ -217,10 +205,7 @@ func (us *usersService) UpdateUserDetails(ctx context.Context, id int64, userMod
 	}, nil
 }
 func (us *usersService) UpdateUserPassword(ctx context.Context, id int64, newPasswd string) error {
-	err := us.q.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-		PasswordHash: newPasswd,
-		ID:           id,
-	})
+	_, err := us.client.User.Update().Where(user2.ID(int(id))).SetPasswordHash(newPasswd).Save(ctx)
 	if err != nil {
 		return err
 	}

@@ -85,7 +85,6 @@ services:
       - /minio/data:/data
 
 
-
   meili_search:
     container_name: fainda_search
     image: getmeili/meilisearch
@@ -98,6 +97,16 @@ services:
       - /meili_data:/meili_data"
 
 
+  pyroscope:
+    image: pyroscope/pyroscope:latest
+    environment:
+      - PYROSCOPE_LOG_LEVEL=debug
+    ports:
+      - '4040:4040'
+    command:
+      - 'server'
+
+
 
 volumes:
   dbdata:
@@ -107,3 +116,4 @@ volumes:
 networks:
   fullstack:
     driver: bridge
+

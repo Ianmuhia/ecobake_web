@@ -48,6 +48,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
+	Auth func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -121,7 +122,6 @@ type ComplexityRoot struct {
 
 	ConfirmAccount struct {
 		Errors func(childComplexity int) int
-		User   func(childComplexity int) int
 	}
 
 	ConfirmEmailChange struct {
@@ -166,26 +166,27 @@ type ComplexityRoot struct {
 		AccountRegister        func(childComplexity int, input models.AccountRegisterInput) int
 		AccountRequestDeletion func(childComplexity int, channel *string, redirectURL string) int
 		AccountUpdate          func(childComplexity int, input models.AccountInput) int
-		ConfirmAccount         func(childComplexity int, email string, token string) int
+		ConfirmAccount         func(childComplexity int, email string, otp string) int
 		ConfirmEmailChange     func(childComplexity int, channel *string, token string) int
 		CreateCategory         func(childComplexity int, input models.CreateCategory) int
 		CreateUser             func(childComplexity int, input models.NewUser) int
-		PasswordChange         func(childComplexity int, newPassword string, oldPassword string) int
+		DeleteCategory         func(childComplexity int, input int) int
+		PasswordChange         func(childComplexity int, newPassword string, oldPassword string, accessToken string) int
 		RequestEmailChange     func(childComplexity int, channel *string, newEmail string, password string, redirectURL string) int
-		RequestPasswordReset   func(childComplexity int, channel *string, email string, redirectURL string) int
+		RequestPasswordReset   func(childComplexity int, email string) int
 		SetPassword            func(childComplexity int, email string, password string, token string) int
 		TokenCreate            func(childComplexity int, email string, password string) int
 		TokenRefresh           func(childComplexity int, refreshToken string) int
 		TokenVerify            func(childComplexity int, token string) int
 		TokensDeactivateAll    func(childComplexity int) int
-		UserAvatarDelete       func(childComplexity int) int
+		UpdateCategory         func(childComplexity int, input models.CreateCategory) int
+		UserAvatarDelete       func(childComplexity int, token string) int
 		UserAvatarUpdate       func(childComplexity int, image graphql.Upload) int
 	}
 
 	PasswordChange struct {
-		AccountErrors func(childComplexity int) int
-		Errors        func(childComplexity int) int
-		User          func(childComplexity int) int
+		Errors func(childComplexity int) int
+		User   func(childComplexity int) int
 	}
 
 	Query struct {
@@ -205,7 +206,8 @@ type ComplexityRoot struct {
 	}
 
 	RequestPasswordReset struct {
-		Errors func(childComplexity int) int
+		Errors     func(childComplexity int) int
+		NatsErrors func(childComplexity int) int
 	}
 
 	SetPassword struct {
@@ -268,15 +270,17 @@ type CategoryResolver interface {
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input models.NewUser) (*models.AccountRegister, error)
-	CreateCategory(ctx context.Context, input models.CreateCategory) (ent.Categories, error)
+	CreateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error)
+	UpdateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error)
+	DeleteCategory(ctx context.Context, input int) (interface{}, error)
 	TokenCreate(ctx context.Context, email string, password string) (*models.CreateToken, error)
 	TokenRefresh(ctx context.Context, refreshToken string) (*models.RefreshToken, error)
 	TokenVerify(ctx context.Context, token string) (*models.VerifyToken, error)
 	TokensDeactivateAll(ctx context.Context) (*models.DeactivateAllUserTokens, error)
-	RequestPasswordReset(ctx context.Context, channel *string, email string, redirectURL string) (*models.RequestPasswordReset, error)
-	ConfirmAccount(ctx context.Context, email string, token string) (*models.ConfirmAccount, error)
+	RequestPasswordReset(ctx context.Context, email string) (*models.RequestPasswordReset, error)
+	ConfirmAccount(ctx context.Context, email string, otp string) (*models.ConfirmAccount, error)
 	SetPassword(ctx context.Context, email string, password string, token string) (*models.SetPassword, error)
-	PasswordChange(ctx context.Context, newPassword string, oldPassword string) (*models.PasswordChange, error)
+	PasswordChange(ctx context.Context, newPassword string, oldPassword string, accessToken string) (*models.PasswordChange, error)
 	RequestEmailChange(ctx context.Context, channel *string, newEmail string, password string, redirectURL string) (*models.RequestEmailChange, error)
 	ConfirmEmailChange(ctx context.Context, channel *string, token string) (*models.ConfirmEmailChange, error)
 	AccountRegister(ctx context.Context, input models.AccountRegisterInput) (*models.AccountRegister, error)
@@ -284,7 +288,7 @@ type MutationResolver interface {
 	AccountRequestDeletion(ctx context.Context, channel *string, redirectURL string) (*models.AccountRequestDeletion, error)
 	AccountDelete(ctx context.Context, token string) (*models.AccountDelete, error)
 	UserAvatarUpdate(ctx context.Context, image graphql.Upload) (*models.UserAvatarUpdate, error)
-	UserAvatarDelete(ctx context.Context) (*models.UserAvatarDelete, error)
+	UserAvatarDelete(ctx context.Context, token string) (*models.UserAvatarDelete, error)
 }
 type QueryResolver interface {
 	Users(ctx context.Context) (ent.Users, error)
@@ -590,13 +594,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ConfirmAccount.Errors(childComplexity), true
 
-	case "ConfirmAccount.user":
-		if e.complexity.ConfirmAccount.User == nil {
-			break
-		}
-
-		return e.complexity.ConfirmAccount.User(childComplexity), true
-
 	case "ConfirmEmailChange.errors":
 		if e.complexity.ConfirmEmailChange.Errors == nil {
 			break
@@ -767,7 +764,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ConfirmAccount(childComplexity, args["email"].(string), args["token"].(string)), true
+		return e.complexity.Mutation.ConfirmAccount(childComplexity, args["email"].(string), args["otp"].(string)), true
 
 	case "Mutation.confirmEmailChange":
 		if e.complexity.Mutation.ConfirmEmailChange == nil {
@@ -805,6 +802,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(models.NewUser)), true
 
+	case "Mutation.deleteCategory":
+		if e.complexity.Mutation.DeleteCategory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteCategory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteCategory(childComplexity, args["input"].(int)), true
+
 	case "Mutation.passwordChange":
 		if e.complexity.Mutation.PasswordChange == nil {
 			break
@@ -815,7 +824,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.PasswordChange(childComplexity, args["newPassword"].(string), args["oldPassword"].(string)), true
+		return e.complexity.Mutation.PasswordChange(childComplexity, args["newPassword"].(string), args["oldPassword"].(string), args["accessToken"].(string)), true
 
 	case "Mutation.requestEmailChange":
 		if e.complexity.Mutation.RequestEmailChange == nil {
@@ -839,7 +848,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.RequestPasswordReset(childComplexity, args["channel"].(*string), args["email"].(string), args["redirectUrl"].(string)), true
+		return e.complexity.Mutation.RequestPasswordReset(childComplexity, args["email"].(string)), true
 
 	case "Mutation.setPassword":
 		if e.complexity.Mutation.SetPassword == nil {
@@ -896,12 +905,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.TokensDeactivateAll(childComplexity), true
 
+	case "Mutation.updateCategory":
+		if e.complexity.Mutation.UpdateCategory == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateCategory_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateCategory(childComplexity, args["input"].(models.CreateCategory)), true
+
 	case "Mutation.userAvatarDelete":
 		if e.complexity.Mutation.UserAvatarDelete == nil {
 			break
 		}
 
-		return e.complexity.Mutation.UserAvatarDelete(childComplexity), true
+		args, err := ec.field_Mutation_userAvatarDelete_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UserAvatarDelete(childComplexity, args["token"].(string)), true
 
 	case "Mutation.userAvatarUpdate":
 		if e.complexity.Mutation.UserAvatarUpdate == nil {
@@ -914,13 +940,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UserAvatarUpdate(childComplexity, args["image"].(graphql.Upload)), true
-
-	case "PasswordChange.accountErrors":
-		if e.complexity.PasswordChange.AccountErrors == nil {
-			break
-		}
-
-		return e.complexity.PasswordChange.AccountErrors(childComplexity), true
 
 	case "PasswordChange.errors":
 		if e.complexity.PasswordChange.Errors == nil {
@@ -991,6 +1010,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RequestPasswordReset.Errors(childComplexity), true
+
+	case "RequestPasswordReset.nats_errors":
+		if e.complexity.RequestPasswordReset.NatsErrors == nil {
+			break
+		}
+
+		return e.complexity.RequestPasswordReset.NatsErrors(childComplexity), true
 
 	case "SetPassword.errors":
 		if e.complexity.SetPassword.Errors == nil {
@@ -1261,13 +1287,25 @@ var sources = []*ast.Source{
 #
 # https://gqlgen.com/getting-started/
 
+# https://gqlgen.com/getting-started/
+directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+# new directive
+directive @auth on FIELD_DEFINITION
+
+scalar Any
+
 type Query {
-    users: Users!
+    users: Users! @goField(forceResolver: true) @auth
     categories: Categories
 }
 type Mutation {
     createUser(input:NewUser!):AccountRegister
-    createCategory(input:CreateCategory!):Categories
+    createCategory(input:CreateCategory!):Category
+    updateCategory(input:CreateCategory!):Category
+    deleteCategory(input:Int!):Any
+
+
 
     # Create JWT token.
     tokenCreate(
@@ -1296,19 +1334,15 @@ type Mutation {
 
     # Sends an email with the account password modification link.
     requestPasswordReset(
-        # Slug of a channel which will be used for notify user. Optional when only one channel exists.
-        channel: String
         # Email of the user that will be used for password recovery.
         email: String!
-        # URL of a view where users should be redirected to reset the password. URL in RFC 1808 format.
-        redirectUrl: String!
     ): RequestPasswordReset
     # Confirm user account with token sent by email during registration.
     confirmAccount(
         # E-mail of the user performing account confirmation.
         email: String!
         # A one-time token required to confirm the account.
-        token: String!
+        otp: String!
     ): ConfirmAccount
     # Sets the user's password from the token sent by email using the RequestPasswordReset mutation.
     setPassword(
@@ -1327,6 +1361,8 @@ type Mutation {
         newPassword: String!
         # Current user password.
         oldPassword: String!
+        # Access token.
+        accessToken: String!
     ): PasswordChange
     # Request email change of the logged in user.
     #
@@ -1388,7 +1424,7 @@ type Mutation {
     # Deletes a user avatar. Only for staff members.
     #
     # Requires one of the following permissions: AUTHENTICATED_STAFF_USER.
-    userAvatarDelete: UserAvatarDelete
+    userAvatarDelete(token: String!): UserAvatarDelete
     # Activate or deactivate users.
     #
 
@@ -1484,10 +1520,12 @@ type AccountError {
     # The error code.
     code: AccountErrorCode!
 
+
 }
 # Sends an email with the account password modification link.
 type RequestPasswordReset {
     errors: [AccountError!]!
+    nats_errors:NatsErrorCodes!
 }
 
 
@@ -1528,6 +1566,71 @@ enum AccountErrorCode {
     ACCOUNT_NOT_CONFIRMED
 }
 
+enum NatsErrorCodes{
+    ERR_CONNECTION_CLOSED
+    ERR_AUTHENTICATION
+    ERR_AUTH_TIMEOUT
+    ERR_AUTH_EXPIRED
+    ERR_MAX_PAYLOAD
+    ERR_MAX_CONTROL_LINE
+    ERR_RESERVED_PUBLISH_SUBJECT
+    ERR_BAD_PUBLISH_SUBJECT
+    ERR_BAD_SUBJECT
+    ERR_BAD_QUALIFIER
+    ERR_BAD_CLIENT_PROTOCOL
+    ERR_TOO_MANY_CONNECTIONS
+    ERR_TOO_MANY_ACCOUNT_CONNECTIONS
+    ERR_TOO_MANY_SUBS
+    ERR_TOO_MANY_SUB_TOKENS
+    ERR_CLIENT_CONNECTED_TO_ROUTE_PORT
+    ERR_CLIENT_CONNECTED_TO_LEAF_NODE_PORT
+    ERR_LEAF_NODE_HAS_SAME_CLUSTER_NAME
+    ERR_LEAF_NODE_DISABLED
+    ERR_CONNECTED_TO_WRONG_PORT
+    ERR_ACCOUNT_EXISTS
+    ERR_BAD_ACCOUNT
+    ERR_RESERVED_ACCOUNT
+    ERR_MISSING_ACCOUNT
+    ERR_MISSING_SERVICE
+    ERR_BAD_SERVICE_TYPE
+    ERR_BAD_SAMPLING
+    ERR_ACCOUNT_VALIDATION
+    ERR_ACCOUNT_EXPIRED
+    ERR_NO_ACCOUNT_RESOLVER
+    ERR_ACCOUNT_RESOLVER_UPDATE_TOO_SOON
+    ERR_ACCOUNT_RESOLVER_SAME_CLAIMS
+    ERR_STREAM_IMPORT_AUTHORIZATION
+    ERR_STREAM_IMPORT_BAD_PREFIX
+    ERR_STREAM_IMPORT_DUPLICATE
+    ERR_SERVICE_IMPORT_AUTHORIZATION
+    ERR_IMPORT_FORMS_CYCLE
+    ERR_CYCLE_SEARCH_DEPTH
+    ERR_CLIENT_OR_ROUTE_CONNECTED_TO_GATEWAY_PORT
+    ERR_WRONG_GATEWAY
+    ERR_NO_SYS_ACCOUNT
+    ERR_REVOCATION
+    ERR_SERVER_NOT_RUNNING
+    ERR_BAD_MSG_HEADER
+    ERR_MSG_HEADERS_NOT_SUPPORTED
+    ERR_NO_RESPONDERS_REQUIRES_HEADERS
+    ERR_CLUSTER_NAME_CONFIG_CONFLICT
+    ERR_CLUSTER_NAME_REMOTE_CONFLICT
+    ERR_MALFORMED_SUBJECT
+    ERR_SUBSCRIBE_PERMISSION_VIOLATION
+    ERR_NO_TRANSFORMS
+    ERR_CERT_NOT_PINNED
+    ERR_DUPLICATE_SERVER_NAME
+    ERR_MINIMUM_VERSION_REQUIRED
+    ERR_INVALID_MAPPING_DESTINATION
+    ERR_INVALID_MAPPING_DESTINATION_SUBJECT
+    ERR_MAPPING_DESTINATION_NOT_USING_ALL_WILDCARDS
+    ERR_UNKNOWN_MAPPING_DESTINATION_FUNCTION
+    ERROR_MAPPING_DESTINATION_FUNCTION_WILDCARD_INDEX_OUT_OF_RANGE
+    ERROR_MAPPING_DESTINATION_FUNCTION_NOT_ENOUGH_ARGUMENTS
+    ERROR_MAPPING_DESTINATION_FUNCTION_INVALID_ARGUMENT
+    ERROR_MAPPING_DESTINATION_FUNCTION_TOO_MANY_ARGUMENTS
+
+}
 input AccountInput {
     # Given name.
     firstName: String
@@ -1591,8 +1694,6 @@ type CreateToken {
 
 # Confirm user account with token sent by email during registration.
 type ConfirmAccount {
-    # An activated user account.
-    user: User
     errors: [AccountError!]!
 }
 # Represents an image.
@@ -1649,8 +1750,6 @@ type CheckoutError {
 type PasswordChange {
     # A user instance with a new password.
     user: User
-    accountErrors: [AccountError!]!
-
     errors: [AccountError!]!
 }
 enum  ListEntityErrorCode {
@@ -1899,14 +1998,14 @@ func (ec *executionContext) field_Mutation_confirmAccount_args(ctx context.Conte
 	}
 	args["email"] = arg0
 	var arg1 string
-	if tmp, ok := rawArgs["token"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
+	if tmp, ok := rawArgs["otp"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otp"))
 		arg1, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["token"] = arg1
+	args["otp"] = arg1
 	return args, nil
 }
 
@@ -1964,6 +2063,21 @@ func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, 
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_deleteCategory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_passwordChange_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1985,6 +2099,15 @@ func (ec *executionContext) field_Mutation_passwordChange_args(ctx context.Conte
 		}
 	}
 	args["oldPassword"] = arg1
+	var arg2 string
+	if tmp, ok := rawArgs["accessToken"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accessToken"))
+		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["accessToken"] = arg2
 	return args, nil
 }
 
@@ -2033,33 +2156,15 @@ func (ec *executionContext) field_Mutation_requestEmailChange_args(ctx context.C
 func (ec *executionContext) field_Mutation_requestPasswordReset_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["channel"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("channel"))
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["channel"] = arg0
-	var arg1 string
+	var arg0 string
 	if tmp, ok := rawArgs["email"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["email"] = arg1
-	var arg2 string
-	if tmp, ok := rawArgs["redirectUrl"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("redirectUrl"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["redirectUrl"] = arg2
+	args["email"] = arg0
 	return args, nil
 }
 
@@ -2136,6 +2241,36 @@ func (ec *executionContext) field_Mutation_tokenRefresh_args(ctx context.Context
 }
 
 func (ec *executionContext) field_Mutation_tokenVerify_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["token"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("token"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["token"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateCategory_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.CreateCategory
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNCreateCategory2ecobakeᚋinternalᚋmodelsᚐCreateCategory(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_userAvatarDelete_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -3967,63 +4102,6 @@ func (ec *executionContext) fieldContext_CheckoutError_lines(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _ConfirmAccount_user(ctx context.Context, field graphql.CollectedField, obj *models.ConfirmAccount) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_ConfirmAccount_user(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*ent.User)
-	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_ConfirmAccount_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ConfirmAccount",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_User_id(ctx, field)
-			case "username":
-				return ec.fieldContext_User_username(ctx, field)
-			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "phone_number":
-				return ec.fieldContext_User_phone_number(ctx, field)
-			case "profile_image":
-				return ec.fieldContext_User_profile_image(ctx, field)
-			case "created_at":
-				return ec.fieldContext_User_created_at(ctx, field)
-			case "updated_at":
-				return ec.fieldContext_User_updated_at(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _ConfirmAccount_errors(ctx context.Context, field graphql.CollectedField, obj *models.ConfirmAccount) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ConfirmAccount_errors(ctx, field)
 	if err != nil {
@@ -4928,9 +5006,9 @@ func (ec *executionContext) _Mutation_createCategory(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(ent.Categories)
+	res := resTmp.(*ent.Category)
 	fc.Result = res
-	return ec.marshalOCategories2ecobakeᚋentᚐCategories(ctx, field.Selections, res)
+	return ec.marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4941,12 +5019,18 @@ func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Con
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "categories":
-				return ec.fieldContext_Categories_categories(ctx, field)
-			case "errors":
-				return ec.fieldContext_Categories_errors(ctx, field)
+			case "id":
+				return ec.fieldContext_Category_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Category_name(ctx, field)
+			case "icon":
+				return ec.fieldContext_Category_icon(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Categories", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
 		},
 	}
 	defer func() {
@@ -4957,6 +5041,122 @@ func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createCategory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateCategory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateCategory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateCategory(rctx, fc.Args["input"].(models.CreateCategory))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Category)
+	fc.Result = res
+	return ec.marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Category_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Category_name(ctx, field)
+			case "icon":
+				return ec.fieldContext_Category_icon(ctx, field)
+			case "created_at":
+				return ec.fieldContext_Category_created_at(ctx, field)
+			case "updated_at":
+				return ec.fieldContext_Category_updated_at(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Category", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateCategory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteCategory(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteCategory(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteCategory(rctx, fc.Args["input"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(interface{})
+	fc.Result = res
+	return ec.marshalOAny2interface(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Any does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteCategory_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
 	}
@@ -5206,7 +5406,7 @@ func (ec *executionContext) _Mutation_requestPasswordReset(ctx context.Context, 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().RequestPasswordReset(rctx, fc.Args["channel"].(*string), fc.Args["email"].(string), fc.Args["redirectUrl"].(string))
+		return ec.resolvers.Mutation().RequestPasswordReset(rctx, fc.Args["email"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5230,6 +5430,8 @@ func (ec *executionContext) fieldContext_Mutation_requestPasswordReset(ctx conte
 			switch field.Name {
 			case "errors":
 				return ec.fieldContext_RequestPasswordReset_errors(ctx, field)
+			case "nats_errors":
+				return ec.fieldContext_RequestPasswordReset_nats_errors(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type RequestPasswordReset", field.Name)
 		},
@@ -5262,7 +5464,7 @@ func (ec *executionContext) _Mutation_confirmAccount(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ConfirmAccount(rctx, fc.Args["email"].(string), fc.Args["token"].(string))
+		return ec.resolvers.Mutation().ConfirmAccount(rctx, fc.Args["email"].(string), fc.Args["otp"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5284,8 +5486,6 @@ func (ec *executionContext) fieldContext_Mutation_confirmAccount(ctx context.Con
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "user":
-				return ec.fieldContext_ConfirmAccount_user(ctx, field)
 			case "errors":
 				return ec.fieldContext_ConfirmAccount_errors(ctx, field)
 			}
@@ -5382,7 +5582,7 @@ func (ec *executionContext) _Mutation_passwordChange(ctx context.Context, field 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().PasswordChange(rctx, fc.Args["newPassword"].(string), fc.Args["oldPassword"].(string))
+		return ec.resolvers.Mutation().PasswordChange(rctx, fc.Args["newPassword"].(string), fc.Args["oldPassword"].(string), fc.Args["accessToken"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5406,8 +5606,6 @@ func (ec *executionContext) fieldContext_Mutation_passwordChange(ctx context.Con
 			switch field.Name {
 			case "user":
 				return ec.fieldContext_PasswordChange_user(ctx, field)
-			case "accountErrors":
-				return ec.fieldContext_PasswordChange_accountErrors(ctx, field)
 			case "errors":
 				return ec.fieldContext_PasswordChange_errors(ctx, field)
 			}
@@ -5848,7 +6046,7 @@ func (ec *executionContext) _Mutation_userAvatarDelete(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UserAvatarDelete(rctx)
+		return ec.resolvers.Mutation().UserAvatarDelete(rctx, fc.Args["token"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5877,6 +6075,17 @@ func (ec *executionContext) fieldContext_Mutation_userAvatarDelete(ctx context.C
 			}
 			return nil, fmt.Errorf("no field named %q was found under type UserAvatarDelete", field.Name)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_userAvatarDelete_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -5933,58 +6142,6 @@ func (ec *executionContext) fieldContext_PasswordChange_user(ctx context.Context
 				return ec.fieldContext_User_updated_at(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PasswordChange_accountErrors(ctx context.Context, field graphql.CollectedField, obj *models.PasswordChange) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_PasswordChange_accountErrors(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.AccountErrors, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*models.AccountError)
-	fc.Result = res
-	return ec.marshalNAccountError2ᚕᚖecobakeᚋinternalᚋmodelsᚐAccountErrorᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_PasswordChange_accountErrors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PasswordChange",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "field":
-				return ec.fieldContext_AccountError_field(ctx, field)
-			case "message":
-				return ec.fieldContext_AccountError_message(ctx, field)
-			case "code":
-				return ec.fieldContext_AccountError_code(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
 		},
 	}
 	return fc, nil
@@ -6055,8 +6212,28 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Users(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Auth == nil {
+				return nil, errors.New("directive auth is not implemented")
+			}
+			return ec.directives.Auth(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(ent.Users); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be ecobake/ent.Users`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6577,6 +6754,50 @@ func (ec *executionContext) fieldContext_RequestPasswordReset_errors(ctx context
 				return ec.fieldContext_AccountError_code(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AccountError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RequestPasswordReset_nats_errors(ctx context.Context, field graphql.CollectedField, obj *models.RequestPasswordReset) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_RequestPasswordReset_nats_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.NatsErrors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(models.NatsErrorCodes)
+	fc.Result = res
+	return ec.marshalNNatsErrorCodes2ecobakeᚋinternalᚋmodelsᚐNatsErrorCodes(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_RequestPasswordReset_nats_errors(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RequestPasswordReset",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type NatsErrorCodes does not have child fields")
 		},
 	}
 	return fc, nil
@@ -10303,10 +10524,6 @@ func (ec *executionContext) _ConfirmAccount(ctx context.Context, sel ast.Selecti
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ConfirmAccount")
-		case "user":
-
-			out.Values[i] = ec._ConfirmAccount_user(ctx, field, obj)
-
 		case "errors":
 
 			out.Values[i] = ec._ConfirmAccount_errors(ctx, field, obj)
@@ -10594,6 +10811,18 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 				return ec._Mutation_createCategory(ctx, field)
 			})
 
+		case "updateCategory":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateCategory(ctx, field)
+			})
+
+		case "deleteCategory":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteCategory(ctx, field)
+			})
+
 		case "tokenCreate":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -10715,13 +10944,6 @@ func (ec *executionContext) _PasswordChange(ctx context.Context, sel ast.Selecti
 
 			out.Values[i] = ec._PasswordChange_user(ctx, field, obj)
 
-		case "accountErrors":
-
-			out.Values[i] = ec._PasswordChange_accountErrors(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "errors":
 
 			out.Values[i] = ec._PasswordChange_errors(ctx, field, obj)
@@ -10909,6 +11131,13 @@ func (ec *executionContext) _RequestPasswordReset(ctx context.Context, sel ast.S
 		case "errors":
 
 			out.Values[i] = ec._RequestPasswordReset_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "nats_errors":
+
+			out.Values[i] = ec._RequestPasswordReset_nats_errors(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -11804,6 +12033,16 @@ func (ec *executionContext) marshalNListEntityErrorCode2ᚕecobakeᚋinternalᚋ
 	return ret
 }
 
+func (ec *executionContext) unmarshalNNatsErrorCodes2ecobakeᚋinternalᚋmodelsᚐNatsErrorCodes(ctx context.Context, v interface{}) (models.NatsErrorCodes, error) {
+	var res models.NatsErrorCodes
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNNatsErrorCodes2ecobakeᚋinternalᚋmodelsᚐNatsErrorCodes(ctx context.Context, sel ast.SelectionSet, v models.NatsErrorCodes) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNNewUser2ecobakeᚋinternalᚋmodelsᚐNewUser(ctx context.Context, v interface{}) (models.NewUser, error) {
 	res, err := ec.unmarshalInputNewUser(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12196,6 +12435,22 @@ func (ec *executionContext) marshalOAccountUpdate2ᚖecobakeᚋinternalᚋmodels
 		return graphql.Null
 	}
 	return ec._AccountUpdate(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalAny(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalAny(v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

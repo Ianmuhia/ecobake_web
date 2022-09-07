@@ -4,12 +4,17 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"ecobake/ent"
+	"ecobake/ent/category"
 	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
+	"ecobake/internal/services"
+	"ecobake/pkg/randomcode"
+	"encoding/gob"
+	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
@@ -17,7 +22,10 @@ import (
 
 // Categories is the resolver for the categories field.
 func (r *categoriesResolver) Categories(ctx context.Context, obj ent.Categories) ([]*ent.Category, error) {
-	panic(fmt.Errorf("not implemented: Categories - categories"))
+	if len(obj) == 0 {
+		return nil, nil
+	}
+	return obj, nil
 }
 
 // Errors is the resolver for the errors field.
@@ -64,8 +72,34 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser)
 }
 
 // CreateCategory is the resolver for the createCategory field.
-func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (ent.Categories, error) {
-	panic(fmt.Errorf("not implemented: CreateCategory - createCategory"))
+func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error) {
+	data, err := r.Client.Category.Create().SetIcon(input.Icon).SetName(input.Name).Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// UpdateCategory is the resolver for the updateCategory field.
+func (r *mutationResolver) UpdateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error) {
+	save, err := r.Client.Category.Update().SetName(input.Name).SetUpdatedAt(time.Now()).SetIcon(input.Icon).Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	only, err := r.Client.Category.Query().Where(category.ID(save)).Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return only, nil
+}
+
+// DeleteCategory is the resolver for the deleteCategory field.
+func (r *mutationResolver) DeleteCategory(ctx context.Context, input int) (interface{}, error) {
+	exec, err := r.Client.Category.Delete().Where(category.IDIn(input)).Exec(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return exec, nil
 }
 
 // TokenCreate is the resolver for the tokenCreate field.
@@ -84,7 +118,6 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 	}
 	m := models.User{PasswordHash: user.PasswordHash}
 	ok := m.CheckPasswordHash(password)
-	log.Println(ok)
 	if !ok {
 		return &models.CreateToken{
 			Errors: []*models.AccountError{
@@ -127,7 +160,7 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 }
 
 // TokenRefresh is the resolver for the tokenRefresh field.
-func (r *mutationResolver) TokenRefresh(_ context.Context, refreshToken string) (*models.RefreshToken, error) {
+func (r *mutationResolver) TokenRefresh(ctx context.Context, refreshToken string) (*models.RefreshToken, error) {
 	payload, err := r.TokenService.VerifyToken(refreshToken)
 	if err != nil {
 		return &models.RefreshToken{
@@ -161,7 +194,56 @@ func (r *mutationResolver) TokenRefresh(_ context.Context, refreshToken string) 
 
 // TokenVerify is the resolver for the tokenVerify field.
 func (r *mutationResolver) TokenVerify(ctx context.Context, token string) (*models.VerifyToken, error) {
-	panic(fmt.Errorf("not implemented: TokenVerify - tokenVerify"))
+	payload, err := r.TokenService.VerifyToken(token)
+	if err != nil {
+		return &models.VerifyToken{
+			Errors: []*models.AccountError{
+				{
+					Field:   "refresh token ",
+					Message: "provided token has expired",
+					Code:    models.AccountErrorCodeJwtInvalidToken,
+				},
+			},
+		}, nil
+	}
+	user, err := r.UserService.GetUserByID(ctx, payload.ID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.VerifyToken{
+				User:    nil,
+				IsValid: false,
+				Payload: nil,
+				Errors: []*models.AccountError{{
+					Field:   "user",
+					Message: "user not found",
+					Code:    models.AccountErrorCodeNotFound,
+				}}}, nil
+		}
+		return &models.VerifyToken{
+			User:    nil,
+			IsValid: false,
+			Payload: nil,
+			Errors: []*models.AccountError{{
+				Field:   "user",
+				Message: err.Error(),
+				Code:    models.AccountErrorCodeGraphqlError,
+			}},
+		}, nil
+	}
+	return &models.VerifyToken{
+		User: &ent.User{
+			ID:           int(user.ID),
+			UserName:     user.UserName,
+			CreatedAt:    user.CreatedAt,
+			PhoneNumber:  user.PhoneNumber,
+			IsVerified:   user.IsVerified,
+			ProfileImage: user.ProfileImage,
+			Email:        user.Email,
+		},
+		IsValid: true,
+		Payload: nil,
+		Errors:  nil,
+	}, nil
 }
 
 // TokensDeactivateAll is the resolver for the tokensDeactivateAll field.
@@ -170,23 +252,146 @@ func (r *mutationResolver) TokensDeactivateAll(ctx context.Context) (*models.Dea
 }
 
 // RequestPasswordReset is the resolver for the requestPasswordReset field.
-func (r *mutationResolver) RequestPasswordReset(ctx context.Context, channel *string, email string, redirectURL string) (*models.RequestPasswordReset, error) {
-	panic(fmt.Errorf("not implemented: RequestPasswordReset - requestPasswordReset"))
+func (r *mutationResolver) RequestPasswordReset(ctx context.Context, email string) (*models.RequestPasswordReset, error) {
+	user, err := r.UserService.GetUserByEmail(ctx, email)
+	if err != nil {
+		return &models.RequestPasswordReset{Errors: []*models.AccountError{{
+			Field:   "user",
+			Message: "provide a valid email or create account to continue",
+			Code:    models.AccountErrorCodeNotFound,
+		}}}, nil
+	}
+
+	// Send verification mail.
+	from := "me@gmail.com"
+	to := user.Email
+	subject := "Password Reset for User"
+
+	mailType := services.PassReset
+	mailData := &services.MailData{
+		Username: user.Email,
+		Code:     randomcode.Code(7),
+	}
+	mailReq := &services.Mail{
+		From:     from,
+		To:       to,
+		Subject:  subject,
+		Body:     mailData,
+		MailType: mailType,
+	}
+
+	v, _ := json.Marshal(mailReq)
+	err = r.NatService.Publish("Mail.Verification", v)
+	if err != nil {
+		return &models.RequestPasswordReset{
+			Errors:     nil,
+			NatsErrors: models.NatsErrorCodesErrAccountExists,
+		}, nil
+	}
+
+	// store the password reset code to db
+	verificationData := &services.VerificationData{
+		Email:     user.Email,
+		Code:      mailData.Code,
+		Type:      string(rune(services.PassReset)),
+		ExpiresAt: time.Now().Add(time.Minute * time.Duration(10)),
+	}
+
+	var b bytes.Buffer
+	if err := gob.NewEncoder(&b).Encode(verificationData); err != nil {
+		return &models.RequestPasswordReset{
+			Errors: []*models.AccountError{{
+				Field:   "password.Reset",
+				Message: "Unable to send password reset code. Please try again later",
+				Code:    models.AccountErrorCodeGraphqlError,
+			}},
+			NatsErrors: "",
+		}, nil
+	}
+
+	//err = r.app.RedisConn.Set(ctx, verificationData.Email, b.Bytes(), time.Minute*time.Duration(r.app.PasswordResetCodeExpiry)).Err()
+	//if err != nil {
+	//	log.Println(err)
+	//	restErr := resterrors.NewBadRequestError("Unable to send password reset code. Please try again later")
+	//	ctx.AbortWithStatusJSON(restErr.Status, restErr)
+	//	return
+	//}
+
+	//return nil, nil
+	panic(fmt.Errorf("not implemented: AccountUpdate - accountUpdate"))
 }
 
 // ConfirmAccount is the resolver for the confirmAccount field.
-func (r *mutationResolver) ConfirmAccount(ctx context.Context, email string, token string) (*models.ConfirmAccount, error) {
-	panic(fmt.Errorf("not implemented: ConfirmAccount - confirmAccount"))
+func (r *mutationResolver) ConfirmAccount(ctx context.Context, email string, otp string) (*models.ConfirmAccount, error) {
+	_, err := r.UserService.UpdateUserStatus(ctx, email)
+	if err != nil {
+		return &models.ConfirmAccount{Errors: []*models.AccountError{{
+			Field:   "user",
+			Message: "unable to update user status",
+			Code:    models.AccountErrorCodeGraphqlError,
+		}}}, nil
+	}
+	return nil, nil
 }
 
 // SetPassword is the resolver for the setPassword field.
 func (r *mutationResolver) SetPassword(ctx context.Context, email string, password string, token string) (*models.SetPassword, error) {
-	panic(fmt.Errorf("not implemented: SetPassword - setPassword"))
+	panic(fmt.Errorf("not implemented: AccountUpdate - accountUpdate"))
 }
 
 // PasswordChange is the resolver for the passwordChange field.
-func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword string, oldPassword string) (*models.PasswordChange, error) {
-	panic(fmt.Errorf("not implemented: PasswordChange - passwordChange"))
+func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword string, oldPassword string, accessToken string) (*models.PasswordChange, error) {
+	payload, err := r.TokenService.VerifyToken(accessToken)
+	if err != nil {
+		return &models.PasswordChange{
+			Errors: []*models.AccountError{
+				{
+					Field:   "refresh token ",
+					Message: "provided token has expired",
+					Code:    models.AccountErrorCodeJwtInvalidToken,
+				},
+			},
+		}, nil
+	}
+	u, err := r.UserService.GetUserByID(ctx, payload.ID)
+
+	d := models.User{PasswordHash: u.PasswordHash}
+	ok := d.CheckPasswordHash(oldPassword)
+	if !ok {
+		return &models.PasswordChange{
+			User: nil,
+			Errors: []*models.AccountError{{
+				Field:   "user.Password",
+				Message: "provided password does not match",
+				Code:    models.AccountErrorCodeInvalidPassword,
+			}},
+		}, nil
+	}
+	p := models.User{Password: newPassword}
+	err = p.Hash()
+	if err != nil {
+		return &models.PasswordChange{
+			User: nil,
+			Errors: []*models.AccountError{{
+				Field:   "user.Password",
+				Message: "error occurred",
+				Code:    models.AccountErrorCodeGraphqlError,
+			}},
+		}, nil
+	}
+	err = r.UserService.UpdateUserPassword(ctx, payload.ID, p.PasswordHash)
+	if err != nil {
+
+		return &models.PasswordChange{
+			User: nil,
+			Errors: []*models.AccountError{{
+				Field:   "user.Password",
+				Message: "error occurred",
+				Code:    models.AccountErrorCodeGraphqlError,
+			}},
+		}, nil
+	}
+	return nil, nil
 }
 
 // RequestEmailChange is the resolver for the requestEmailChange field.
@@ -225,7 +430,7 @@ func (r *mutationResolver) UserAvatarUpdate(ctx context.Context, image graphql.U
 }
 
 // UserAvatarDelete is the resolver for the userAvatarDelete field.
-func (r *mutationResolver) UserAvatarDelete(ctx context.Context) (*models.UserAvatarDelete, error) {
+func (r *mutationResolver) UserAvatarDelete(ctx context.Context, token string) (*models.UserAvatarDelete, error) {
 	panic(fmt.Errorf("not implemented: UserAvatarDelete - userAvatarDelete"))
 }
 
@@ -240,7 +445,11 @@ func (r *queryResolver) Users(ctx context.Context) (ent.Users, error) {
 
 // Categories is the resolver for the categories field.
 func (r *queryResolver) Categories(ctx context.Context) (ent.Categories, error) {
-	panic(fmt.Errorf("not implemented: Categories - categories"))
+	data, err := r.Client.Category.Query().All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 // UserCreated is the resolver for the userCreated field.
