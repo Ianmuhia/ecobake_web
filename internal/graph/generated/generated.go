@@ -5,7 +5,6 @@ package generated
 import (
 	"bytes"
 	"context"
-	"ecobake/ent"
 	"ecobake/internal/models"
 	"errors"
 	"fmt"
@@ -38,17 +37,14 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Categories() CategoriesResolver
-	Category() CategoryResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Subscription() SubscriptionResolver
-	User() UserResolver
-	Users() UsersResolver
 }
 
 type DirectiveRoot struct {
-	Auth func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	Auth    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -231,10 +227,11 @@ type ComplexityRoot struct {
 		CreatedAt    func(childComplexity int) int
 		Email        func(childComplexity int) int
 		ID           func(childComplexity int) int
+		Password     func(childComplexity int) int
 		PhoneNumber  func(childComplexity int) int
 		ProfileImage func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
-		UserName     func(childComplexity int) int
+		Username     func(childComplexity int) int
 	}
 
 	UserAvatarDelete struct {
@@ -260,19 +257,11 @@ type ComplexityRoot struct {
 	}
 }
 
-type CategoriesResolver interface {
-	Categories(ctx context.Context, obj ent.Categories) ([]*ent.Category, error)
-	Errors(ctx context.Context, obj ent.Categories) ([]models.ListEntityErrorCode, error)
-}
-type CategoryResolver interface {
-	CreatedAt(ctx context.Context, obj *ent.Category) (string, error)
-	UpdatedAt(ctx context.Context, obj *ent.Category) (string, error)
-}
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input models.NewUser) (*models.AccountRegister, error)
-	CreateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error)
-	UpdateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error)
-	DeleteCategory(ctx context.Context, input int) (interface{}, error)
+	CreateCategory(ctx context.Context, input models.CreateCategory) (*models.Category, error)
+	UpdateCategory(ctx context.Context, input models.CreateCategory) (*models.Category, error)
+	DeleteCategory(ctx context.Context, input int) (bool, error)
 	TokenCreate(ctx context.Context, email string, password string) (*models.CreateToken, error)
 	TokenRefresh(ctx context.Context, refreshToken string) (*models.RefreshToken, error)
 	TokenVerify(ctx context.Context, token string) (*models.VerifyToken, error)
@@ -291,19 +280,11 @@ type MutationResolver interface {
 	UserAvatarDelete(ctx context.Context, token string) (*models.UserAvatarDelete, error)
 }
 type QueryResolver interface {
-	Users(ctx context.Context) (ent.Users, error)
-	Categories(ctx context.Context) (ent.Categories, error)
+	Users(ctx context.Context) (models.Users, error)
+	Categories(ctx context.Context) (*models.Categories, error)
 }
 type SubscriptionResolver interface {
-	UserCreated(ctx context.Context) (<-chan ent.User, error)
-}
-type UserResolver interface {
-	CreatedAt(ctx context.Context, obj *ent.User) (string, error)
-	UpdatedAt(ctx context.Context, obj *ent.User) (string, error)
-}
-type UsersResolver interface {
-	Users(ctx context.Context, obj ent.Users) ([]*ent.User, error)
-	Errors(ctx context.Context, obj ent.Users) ([]models.ListEntityErrorCode, error)
+	UserCreated(ctx context.Context) (<-chan models.User, error)
 }
 
 type executableSchema struct {
@@ -1095,6 +1076,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.ID(childComplexity), true
 
+	case "User.password":
+		if e.complexity.User.Password == nil {
+			break
+		}
+
+		return e.complexity.User.Password(childComplexity), true
+
 	case "User.phone_number":
 		if e.complexity.User.PhoneNumber == nil {
 			break
@@ -1117,11 +1105,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		return e.complexity.User.UpdatedAt(childComplexity), true
 
 	case "User.username":
-		if e.complexity.User.UserName == nil {
+		if e.complexity.User.Username == nil {
 			break
 		}
 
-		return e.complexity.User.UserName(childComplexity), true
+		return e.complexity.User.Username(childComplexity), true
 
 	case "UserAvatarDelete.errors":
 		if e.complexity.UserAvatarDelete.Errors == nil {
@@ -1285,7 +1273,6 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "../schema.graphqls", Input: `# GraphQL schema example
 #
-# https://gqlgen.com/getting-started/
 
 # https://gqlgen.com/getting-started/
 directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
@@ -1293,6 +1280,12 @@ directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | I
 # new directive
 directive @auth on FIELD_DEFINITION
 
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
+enum Role {
+    ADMIN
+    USER
+}
 scalar Any
 
 type Query {
@@ -1303,7 +1296,7 @@ type Mutation {
     createUser(input:NewUser!):AccountRegister
     createCategory(input:CreateCategory!):Category
     updateCategory(input:CreateCategory!):Category
-    deleteCategory(input:Int!):Any
+    deleteCategory(input:Int!):Boolean! @hasRole(role: ADMIN)
 
 
 
@@ -1443,6 +1436,7 @@ type User {
     username: String!
     email: String!
     phone_number: String!
+    password: String!
     profile_image: String!
     created_at: String!
     updated_at: String!
@@ -1915,6 +1909,21 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_hasRole_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 models.Role
+	if tmp, ok := rawArgs["role"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+		arg0, err = ec.unmarshalNRole2ecobakeᚋinternalᚋmodelsᚐRole(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["role"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_accountDelete_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -2428,9 +2437,9 @@ func (ec *executionContext) _AccountDelete_user(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccountDelete_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2449,6 +2458,8 @@ func (ec *executionContext) fieldContext_AccountDelete_user(ctx context.Context,
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -2710,9 +2721,9 @@ func (ec *executionContext) _AccountRegister_user(ctx context.Context, field gra
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccountRegister_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2731,6 +2742,8 @@ func (ec *executionContext) fieldContext_AccountRegister_user(ctx context.Contex
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -2819,9 +2832,9 @@ func (ec *executionContext) _AccountRegisterResponse_user(ctx context.Context, f
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccountRegisterResponse_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2840,6 +2853,8 @@ func (ec *executionContext) fieldContext_AccountRegisterResponse_user(ctx contex
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -2980,9 +2995,9 @@ func (ec *executionContext) _AccountUpdate_user(ctx context.Context, field graph
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AccountUpdate_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3001,6 +3016,8 @@ func (ec *executionContext) fieldContext_AccountUpdate_user(ctx context.Context,
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -3577,7 +3594,7 @@ func (ec *executionContext) fieldContext_Address_isDefaultBillingAddress(ctx con
 	return fc, nil
 }
 
-func (ec *executionContext) _Categories_categories(ctx context.Context, field graphql.CollectedField, obj ent.Categories) (ret graphql.Marshaler) {
+func (ec *executionContext) _Categories_categories(ctx context.Context, field graphql.CollectedField, obj *models.Categories) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Categories_categories(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3591,7 +3608,7 @@ func (ec *executionContext) _Categories_categories(ctx context.Context, field gr
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Categories().Categories(rctx, obj)
+		return obj.Categories, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3600,17 +3617,17 @@ func (ec *executionContext) _Categories_categories(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.Category)
+	res := resTmp.([]*models.Category)
 	fc.Result = res
-	return ec.marshalOCategory2ᚕᚖecobakeᚋentᚐCategory(ctx, field.Selections, res)
+	return ec.marshalOCategory2ᚕᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Categories_categories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Categories",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -3630,7 +3647,7 @@ func (ec *executionContext) fieldContext_Categories_categories(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Categories_errors(ctx context.Context, field graphql.CollectedField, obj ent.Categories) (ret graphql.Marshaler) {
+func (ec *executionContext) _Categories_errors(ctx context.Context, field graphql.CollectedField, obj *models.Categories) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Categories_errors(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3644,7 +3661,7 @@ func (ec *executionContext) _Categories_errors(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Categories().Errors(rctx, obj)
+		return obj.Errors, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3665,8 +3682,8 @@ func (ec *executionContext) fieldContext_Categories_errors(ctx context.Context, 
 	fc = &graphql.FieldContext{
 		Object:     "Categories",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ListEntityErrorCode does not have child fields")
 		},
@@ -3674,7 +3691,7 @@ func (ec *executionContext) fieldContext_Categories_errors(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_id(ctx context.Context, field graphql.CollectedField, obj *ent.Category) (ret graphql.Marshaler) {
+func (ec *executionContext) _Category_id(ctx context.Context, field graphql.CollectedField, obj *models.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3718,7 +3735,7 @@ func (ec *executionContext) fieldContext_Category_id(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_name(ctx context.Context, field graphql.CollectedField, obj *ent.Category) (ret graphql.Marshaler) {
+func (ec *executionContext) _Category_name(ctx context.Context, field graphql.CollectedField, obj *models.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3762,7 +3779,7 @@ func (ec *executionContext) fieldContext_Category_name(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_icon(ctx context.Context, field graphql.CollectedField, obj *ent.Category) (ret graphql.Marshaler) {
+func (ec *executionContext) _Category_icon(ctx context.Context, field graphql.CollectedField, obj *models.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_icon(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3806,7 +3823,7 @@ func (ec *executionContext) fieldContext_Category_icon(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_created_at(ctx context.Context, field graphql.CollectedField, obj *ent.Category) (ret graphql.Marshaler) {
+func (ec *executionContext) _Category_created_at(ctx context.Context, field graphql.CollectedField, obj *models.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_created_at(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3820,7 +3837,7 @@ func (ec *executionContext) _Category_created_at(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Category().CreatedAt(rctx, obj)
+		return obj.CreatedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3841,8 +3858,8 @@ func (ec *executionContext) fieldContext_Category_created_at(ctx context.Context
 	fc = &graphql.FieldContext{
 		Object:     "Category",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -3850,7 +3867,7 @@ func (ec *executionContext) fieldContext_Category_created_at(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Category_updated_at(ctx context.Context, field graphql.CollectedField, obj *ent.Category) (ret graphql.Marshaler) {
+func (ec *executionContext) _Category_updated_at(ctx context.Context, field graphql.CollectedField, obj *models.Category) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Category_updated_at(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -3864,7 +3881,7 @@ func (ec *executionContext) _Category_updated_at(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Category().UpdatedAt(rctx, obj)
+		return obj.UpdatedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3885,8 +3902,8 @@ func (ec *executionContext) fieldContext_Category_updated_at(ctx context.Context
 	fc = &graphql.FieldContext{
 		Object:     "Category",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -4177,9 +4194,9 @@ func (ec *executionContext) _ConfirmEmailChange_user(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_ConfirmEmailChange_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4198,6 +4215,8 @@ func (ec *executionContext) fieldContext_ConfirmEmailChange_user(ctx context.Con
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -4374,9 +4393,9 @@ func (ec *executionContext) _CreateToken_user(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CreateToken_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4395,6 +4414,8 @@ func (ec *executionContext) fieldContext_CreateToken_user(ctx context.Context, f
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -4807,9 +4828,9 @@ func (ec *executionContext) _LoginResp_user(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(ent.User)
+	res := resTmp.(models.User)
 	fc.Result = res
-	return ec.marshalNUser2ecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_LoginResp_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4828,6 +4849,8 @@ func (ec *executionContext) fieldContext_LoginResp_user(ctx context.Context, fie
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -5006,9 +5029,9 @@ func (ec *executionContext) _Mutation_createCategory(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.Category)
+	res := resTmp.(*models.Category)
 	fc.Result = res
-	return ec.marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx, field.Selections, res)
+	return ec.marshalOCategory2ᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5070,9 +5093,9 @@ func (ec *executionContext) _Mutation_updateCategory(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.Category)
+	res := resTmp.(*models.Category)
 	fc.Result = res
-	return ec.marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx, field.Selections, res)
+	return ec.marshalOCategory2ᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_updateCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5124,19 +5147,46 @@ func (ec *executionContext) _Mutation_deleteCategory(ctx context.Context, field 
 		}
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteCategory(rctx, fc.Args["input"].(int))
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().DeleteCategory(rctx, fc.Args["input"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			role, err := ec.unmarshalNRole2ecobakeᚋinternalᚋmodelsᚐRole(ctx, "ADMIN")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.HasRole == nil {
+				return nil, errors.New("directive hasRole is not implemented")
+			}
+			return ec.directives.HasRole(ctx, nil, directive0, role)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(bool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be bool`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(interface{})
+	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOAny2interface(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_deleteCategory(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5146,7 +5196,7 @@ func (ec *executionContext) fieldContext_Mutation_deleteCategory(ctx context.Con
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Any does not have child fields")
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	defer func() {
@@ -6113,9 +6163,9 @@ func (ec *executionContext) _PasswordChange_user(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_PasswordChange_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6134,6 +6184,8 @@ func (ec *executionContext) fieldContext_PasswordChange_user(ctx context.Context
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -6230,10 +6282,10 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(ent.Users); ok {
+		if data, ok := tmp.(models.Users); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be ecobake/ent.Users`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be ecobake/internal/models.Users`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6245,9 +6297,9 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(ent.Users)
+	res := resTmp.(models.Users)
 	fc.Result = res
-	return ec.marshalNUsers2ecobakeᚋentᚐUsers(ctx, field.Selections, res)
+	return ec.marshalNUsers2ecobakeᚋinternalᚋmodelsᚐUsers(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6292,9 +6344,9 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(ent.Categories)
+	res := resTmp.(*models.Categories)
 	fc.Result = res
-	return ec.marshalOCategories2ecobakeᚋentᚐCategories(ctx, field.Selections, res)
+	return ec.marshalOCategories2ᚖecobakeᚋinternalᚋmodelsᚐCategories(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_categories(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6512,9 +6564,9 @@ func (ec *executionContext) _RefreshToken_user(ctx context.Context, field graphq
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_RefreshToken_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6533,6 +6585,8 @@ func (ec *executionContext) fieldContext_RefreshToken_user(ctx context.Context, 
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -6621,9 +6675,9 @@ func (ec *executionContext) _RequestEmailChange_user(ctx context.Context, field 
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_RequestEmailChange_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6642,6 +6696,8 @@ func (ec *executionContext) fieldContext_RequestEmailChange_user(ctx context.Con
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -6908,9 +6964,9 @@ func (ec *executionContext) _SetPassword_user(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_SetPassword_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6929,6 +6985,8 @@ func (ec *executionContext) fieldContext_SetPassword_user(ctx context.Context, f
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -7022,7 +7080,7 @@ func (ec *executionContext) _Subscription_userCreated(ctx context.Context, field
 	}
 	return func(ctx context.Context) graphql.Marshaler {
 		select {
-		case res, ok := <-resTmp.(<-chan ent.User):
+		case res, ok := <-resTmp.(<-chan models.User):
 			if !ok {
 				return nil
 			}
@@ -7030,7 +7088,7 @@ func (ec *executionContext) _Subscription_userCreated(ctx context.Context, field
 				w.Write([]byte{'{'})
 				graphql.MarshalString(field.Alias).MarshalGQL(w)
 				w.Write([]byte{':'})
-				ec.marshalNUser2ecobakeᚋentᚐUser(ctx, field.Selections, res).MarshalGQL(w)
+				ec.marshalNUser2ecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res).MarshalGQL(w)
 				w.Write([]byte{'}'})
 			})
 		case <-ctx.Done():
@@ -7055,6 +7113,8 @@ func (ec *executionContext) fieldContext_Subscription_userCreated(ctx context.Co
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -7194,7 +7254,7 @@ func (ec *executionContext) fieldContext_UploadError_code(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7238,7 +7298,7 @@ func (ec *executionContext) fieldContext_User_id(ctx context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_username(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_username(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_username(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7252,7 +7312,7 @@ func (ec *executionContext) _User_username(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.UserName, nil
+		return obj.Username, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7282,7 +7342,7 @@ func (ec *executionContext) fieldContext_User_username(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_email(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7326,7 +7386,7 @@ func (ec *executionContext) fieldContext_User_email(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _User_phone_number(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_phone_number(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_phone_number(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7370,7 +7430,51 @@ func (ec *executionContext) fieldContext_User_phone_number(ctx context.Context, 
 	return fc, nil
 }
 
-func (ec *executionContext) _User_profile_image(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_password(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_password(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Password, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_password(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_profile_image(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_profile_image(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7414,7 +7518,7 @@ func (ec *executionContext) fieldContext_User_profile_image(ctx context.Context,
 	return fc, nil
 }
 
-func (ec *executionContext) _User_created_at(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_created_at(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_created_at(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7428,7 +7532,7 @@ func (ec *executionContext) _User_created_at(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().CreatedAt(rctx, obj)
+		return obj.CreatedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7449,8 +7553,8 @@ func (ec *executionContext) fieldContext_User_created_at(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -7458,7 +7562,7 @@ func (ec *executionContext) fieldContext_User_created_at(ctx context.Context, fi
 	return fc, nil
 }
 
-func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.CollectedField, obj *models.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_updated_at(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7472,7 +7576,7 @@ func (ec *executionContext) _User_updated_at(ctx context.Context, field graphql.
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.User().UpdatedAt(rctx, obj)
+		return obj.UpdatedAt, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7493,8 +7597,8 @@ func (ec *executionContext) fieldContext_User_updated_at(ctx context.Context, fi
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -7525,9 +7629,9 @@ func (ec *executionContext) _UserAvatarDelete_user(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserAvatarDelete_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7546,6 +7650,8 @@ func (ec *executionContext) fieldContext_UserAvatarDelete_user(ctx context.Conte
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -7634,9 +7740,9 @@ func (ec *executionContext) _UserAvatarUpdate_user(ctx context.Context, field gr
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_UserAvatarUpdate_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7655,6 +7761,8 @@ func (ec *executionContext) fieldContext_UserAvatarUpdate_user(ctx context.Conte
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -7720,7 +7828,7 @@ func (ec *executionContext) fieldContext_UserAvatarUpdate_errors(ctx context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _Users_users(ctx context.Context, field graphql.CollectedField, obj ent.Users) (ret graphql.Marshaler) {
+func (ec *executionContext) _Users_users(ctx context.Context, field graphql.CollectedField, obj *models.Users) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Users_users(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7734,7 +7842,7 @@ func (ec *executionContext) _Users_users(ctx context.Context, field graphql.Coll
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Users().Users(rctx, obj)
+		return obj.Users, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7743,17 +7851,17 @@ func (ec *executionContext) _Users_users(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.([]*ent.User)
+	res := resTmp.([]*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚕᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚕᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Users",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -7764,6 +7872,8 @@ func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field 
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -7777,7 +7887,7 @@ func (ec *executionContext) fieldContext_Users_users(ctx context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Users_errors(ctx context.Context, field graphql.CollectedField, obj ent.Users) (ret graphql.Marshaler) {
+func (ec *executionContext) _Users_errors(ctx context.Context, field graphql.CollectedField, obj *models.Users) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Users_errors(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -7791,7 +7901,7 @@ func (ec *executionContext) _Users_errors(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Users().Errors(rctx, obj)
+		return obj.Errors, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7812,8 +7922,8 @@ func (ec *executionContext) fieldContext_Users_errors(ctx context.Context, field
 	fc = &graphql.FieldContext{
 		Object:     "Users",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ListEntityErrorCode does not have child fields")
 		},
@@ -7844,9 +7954,9 @@ func (ec *executionContext) _VerifyToken_user(ctx context.Context, field graphql
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*ent.User)
+	res := resTmp.(*models.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_VerifyToken_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -7865,6 +7975,8 @@ func (ec *executionContext) fieldContext_VerifyToken_user(ctx context.Context, f
 				return ec.fieldContext_User_email(ctx, field)
 			case "phone_number":
 				return ec.fieldContext_User_phone_number(ctx, field)
+			case "password":
+				return ec.fieldContext_User_password(ctx, field)
 			case "profile_image":
 				return ec.fieldContext_User_profile_image(ctx, field)
 			case "created_at":
@@ -10012,7 +10124,7 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 
 // region    ************************** interface.gotpl ***************************
 
-func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj ent.Noder) graphql.Marshaler {
+func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj models.Node) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
@@ -10332,7 +10444,7 @@ func (ec *executionContext) _Address(ctx context.Context, sel ast.SelectionSet, 
 
 var categoriesImplementors = []string{"Categories"}
 
-func (ec *executionContext) _Categories(ctx context.Context, sel ast.SelectionSet, obj ent.Categories) graphql.Marshaler {
+func (ec *executionContext) _Categories(ctx context.Context, sel ast.SelectionSet, obj *models.Categories) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, categoriesImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -10341,42 +10453,16 @@ func (ec *executionContext) _Categories(ctx context.Context, sel ast.SelectionSe
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Categories")
 		case "categories":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Categories_categories(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Categories_categories(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "errors":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Categories_errors(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Categories_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10390,7 +10476,7 @@ func (ec *executionContext) _Categories(ctx context.Context, sel ast.SelectionSe
 
 var categoryImplementors = []string{"Category"}
 
-func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet, obj *ent.Category) graphql.Marshaler {
+func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet, obj *models.Category) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, categoryImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -10403,62 +10489,36 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = ec._Category_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "name":
 
 			out.Values[i] = ec._Category_name(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "icon":
 
 			out.Values[i] = ec._Category_icon(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "created_at":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Category_created_at(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Category_created_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "updated_at":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Category_updated_at(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Category_updated_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10823,6 +10883,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 				return ec._Mutation_deleteCategory(ctx, field)
 			})
 
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "tokenCreate":
 
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
@@ -11251,7 +11314,7 @@ func (ec *executionContext) _UploadError(ctx context.Context, sel ast.SelectionS
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *ent.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *models.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -11264,76 +11327,57 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_id(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "username":
 
 			out.Values[i] = ec._User_username(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "email":
 
 			out.Values[i] = ec._User_email(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "phone_number":
 
 			out.Values[i] = ec._User_phone_number(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
+			}
+		case "password":
+
+			out.Values[i] = ec._User_password(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
 		case "profile_image":
 
 			out.Values[i] = ec._User_profile_image(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
+				invalids++
 			}
 		case "created_at":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._User_created_at(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._User_created_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "updated_at":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._User_updated_at(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._User_updated_at(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11411,7 +11455,7 @@ func (ec *executionContext) _UserAvatarUpdate(ctx context.Context, sel ast.Selec
 
 var usersImplementors = []string{"Users"}
 
-func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, obj ent.Users) graphql.Marshaler {
+func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, obj *models.Users) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, usersImplementors)
 	out := graphql.NewFieldSet(fields)
 	var invalids uint32
@@ -11420,42 +11464,16 @@ func (ec *executionContext) _Users(ctx context.Context, sel ast.SelectionSet, ob
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Users")
 		case "users":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Users_users(ctx, field, obj)
-				return res
-			}
+			out.Values[i] = ec._Users_users(ctx, field, obj)
 
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		case "errors":
-			field := field
 
-			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Users_errors(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Users_errors(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
 			}
-
-			out.Concurrently(i, func() graphql.Marshaler {
-				return innerFunc(ctx)
-
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12048,6 +12066,16 @@ func (ec *executionContext) unmarshalNNewUser2ecobakeᚋinternalᚋmodelsᚐNewU
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNRole2ecobakeᚋinternalᚋmodelsᚐRole(ctx context.Context, v interface{}) (models.Role, error) {
+	var res models.Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2ecobakeᚋinternalᚋmodelsᚐRole(ctx context.Context, sel ast.SelectionSet, v models.Role) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12142,18 +12170,12 @@ func (ec *executionContext) marshalNUploadErrorCode2ecobakeᚋinternalᚋmodels�
 	return v
 }
 
-func (ec *executionContext) marshalNUser2ecobakeᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v ent.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ecobakeᚋinternalᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v models.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUsers2ecobakeᚋentᚐUsers(ctx context.Context, sel ast.SelectionSet, v ent.Users) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Users(ctx, sel, v)
+func (ec *executionContext) marshalNUsers2ecobakeᚋinternalᚋmodelsᚐUsers(ctx context.Context, sel ast.SelectionSet, v models.Users) graphql.Marshaler {
+	return ec._Users(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -12437,22 +12459,6 @@ func (ec *executionContext) marshalOAccountUpdate2ᚖecobakeᚋinternalᚋmodels
 	return ec._AccountUpdate(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAny2interface(ctx context.Context, v interface{}) (interface{}, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := graphql.UnmarshalAny(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOAny2interface(ctx context.Context, sel ast.SelectionSet, v interface{}) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	res := graphql.MarshalAny(v)
-	return res
-}
-
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12479,14 +12485,14 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
-func (ec *executionContext) marshalOCategories2ecobakeᚋentᚐCategories(ctx context.Context, sel ast.SelectionSet, v ent.Categories) graphql.Marshaler {
+func (ec *executionContext) marshalOCategories2ᚖecobakeᚋinternalᚋmodelsᚐCategories(ctx context.Context, sel ast.SelectionSet, v *models.Categories) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Categories(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCategory2ᚕᚖecobakeᚋentᚐCategory(ctx context.Context, sel ast.SelectionSet, v []*ent.Category) graphql.Marshaler {
+func (ec *executionContext) marshalOCategory2ᚕᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx context.Context, sel ast.SelectionSet, v []*models.Category) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -12513,7 +12519,7 @@ func (ec *executionContext) marshalOCategory2ᚕᚖecobakeᚋentᚐCategory(ctx 
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx, sel, v[i])
+			ret[i] = ec.marshalOCategory2ᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -12527,7 +12533,7 @@ func (ec *executionContext) marshalOCategory2ᚕᚖecobakeᚋentᚐCategory(ctx 
 	return ret
 }
 
-func (ec *executionContext) marshalOCategory2ᚖecobakeᚋentᚐCategory(ctx context.Context, sel ast.SelectionSet, v *ent.Category) graphql.Marshaler {
+func (ec *executionContext) marshalOCategory2ᚖecobakeᚋinternalᚋmodelsᚐCategory(ctx context.Context, sel ast.SelectionSet, v *models.Category) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -12674,7 +12680,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚕᚖecobakeᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v []*ent.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚕᚖecobakeᚋinternalᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v []*models.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -12701,7 +12707,7 @@ func (ec *executionContext) marshalOUser2ᚕᚖecobakeᚋentᚐUser(ctx context.
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOUser2ᚖecobakeᚋentᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -12715,7 +12721,7 @@ func (ec *executionContext) marshalOUser2ᚕᚖecobakeᚋentᚐUser(ctx context.
 	return ret
 }
 
-func (ec *executionContext) marshalOUser2ᚖecobakeᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v *ent.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖecobakeᚋinternalᚋmodelsᚐUser(ctx context.Context, sel ast.SelectionSet, v *models.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

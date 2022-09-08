@@ -69,7 +69,7 @@ func (cs *categoriesService) ListCategories(ctx context.Context) ([]*models.Cate
 	values := make([]*models.Category, len(cat))
 	for i, v := range cat {
 		values[i] = &models.Category{
-			ID:   int32(v.ID),
+			ID:   int(v.ID),
 			Name: v.Name,
 			Icon: fmt.Sprintf("%s/%s/%s", cs.cfg.StorageURL.String(), cs.cfg.StorageBucket, v.Icon),
 		}

@@ -8,15 +8,16 @@ import (
 	"ecobake/internal/controllers"
 	"ecobake/internal/graph"
 	"ecobake/internal/graph/generated"
+	"ecobake/internal/models"
 	"ecobake/internal/services"
 	"fmt"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gorilla/websocket"
-	"github.com/rs/cors"
 	"log"
 	"net/http"
 	"os"
@@ -222,9 +223,21 @@ func Run(
 		searchService,
 		categoryService,
 	)
+	//https://github.com/zenyui/gqlgen-dataloader/blob/main/graph/dataloader/dataloader.go
 
 	//httpServerURL := fmt.Sprintf("%s:%s", conf.Server.Address, conf.Server.Port)
-	gsrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: resolver}))
+	c := generated.Config{Resolvers: resolver, Directives: struct {
+		Auth    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+		HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error)
+	}{Auth: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
+		return nil, err
+
+	}, HasRole: func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error) {
+		return nil, err
+	}}}
+	//c.Directives.Auth = directives.Auth
+	gsrv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
+
 	// Configure WebSocket with CORS
 	gsrv.AddTransport(&transport.Websocket{
 		Upgrader: websocket.Upgrader{
@@ -253,11 +266,8 @@ func Run(
 	srvURL := fmt.Sprintf("%s:%s", address, port)
 
 	srv := &http.Server{
-		Addr:    srvURL,
-		Handler: r,
-		//ReadHeaderTimeout: time.Second,
-		//WriteTimeout:      time.Second,
-		//IdleTimeout:       time.Second,
+		Addr:     srvURL,
+		Handler:  r,
 		ErrorLog: logger,
 	}
 
@@ -271,7 +281,7 @@ func Run(
 		}
 	}()
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", cors.AllowAll().Handler(gsrv))
+	http.Handle("/query", handler.NewDefaultServer(generated.NewExecutableSchema(c)))
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", "8080")
 	// Listen for the interrupt signal.

@@ -75,8 +75,7 @@ func (maker *tokenService) VerifyToken(token string) (*models.Payload, error) {
 	jwtToken, err := jwt.ParseWithClaims(token, &models.Payload{}, keyFunc)
 	if err != nil {
 		verr, ok := err.(*jwt.ValidationError)
-		maker.cfg.Logger.Println(err)
-		maker.cfg.Logger.Println(verr)
+
 		if ok && errors.Is(verr.Inner, ErrExpiredToken) {
 			return nil, ErrExpiredToken
 		}

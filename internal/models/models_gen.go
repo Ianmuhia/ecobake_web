@@ -3,15 +3,19 @@
 package models
 
 import (
-	"ecobake/ent"
 	"fmt"
 	"io"
 	"strconv"
 )
 
+type Node interface {
+	IsNode()
+	GetID() string
+}
+
 type AccountDelete struct {
 	Errors []*AccountError `json:"errors"`
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 }
 
 type AccountError struct {
@@ -28,7 +32,7 @@ type AccountInput struct {
 type AccountRegister struct {
 	RequiresConfirmation *bool           `json:"requiresConfirmation"`
 	Errors               []*AccountError `json:"errors"`
-	User                 *ent.User       `json:"user"`
+	User                 *User           `json:"user"`
 }
 
 type AccountRegisterInput struct {
@@ -42,7 +46,7 @@ type AccountRegisterInput struct {
 
 type AccountRegisterResponse struct {
 	Errors []*AccountError `json:"errors"`
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 }
 
 type AccountRequestDeletion struct {
@@ -51,7 +55,7 @@ type AccountRequestDeletion struct {
 
 type AccountUpdate struct {
 	Errors []*AccountError `json:"errors"`
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 }
 
 type Address struct {
@@ -70,6 +74,19 @@ type Address struct {
 	IsDefaultBillingAddress  *bool   `json:"isDefaultBillingAddress"`
 }
 
+type Categories struct {
+	Categories []*Category           `json:"categories"`
+	Errors     []ListEntityErrorCode `json:"errors"`
+}
+
+type Category struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Icon      string `json:"icon"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
 type CheckoutError struct {
 	Field    *string           `json:"field"`
 	Message  *string           `json:"message"`
@@ -83,7 +100,7 @@ type ConfirmAccount struct {
 }
 
 type ConfirmEmailChange struct {
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
@@ -95,7 +112,7 @@ type CreateCategory struct {
 type CreateToken struct {
 	Token        string          `json:"token"`
 	RefreshToken string          `json:"refreshToken"`
-	User         *ent.User       `json:"user"`
+	User         *User           `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
 
@@ -119,9 +136,9 @@ type Image struct {
 }
 
 type LoginResp struct {
-	User    ent.User `json:"user"`
-	Refresh *string  `json:"refresh"`
-	Access  *string  `json:"access"`
+	User    User    `json:"user"`
+	Refresh *string `json:"refresh"`
+	Access  *string `json:"access"`
 }
 
 type LoginUser struct {
@@ -136,18 +153,18 @@ type NewUser struct {
 }
 
 type PasswordChange struct {
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type RefreshToken struct {
 	Token  string          `json:"token"`
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type RequestEmailChange struct {
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
@@ -159,7 +176,7 @@ type RequestPasswordReset struct {
 type SetPassword struct {
 	Token        *string         `json:"token"`
 	RefreshToken *string         `json:"refreshToken"`
-	User         *ent.User       `json:"user"`
+	User         *User           `json:"user"`
 	Errors       []*AccountError `json:"errors"`
 }
 
@@ -169,18 +186,34 @@ type UploadError struct {
 	Code    UploadErrorCode `json:"code"`
 }
 
+type User struct {
+	ID           int    `json:"id"`
+	Username     string `json:"username"`
+	Email        string `json:"email"`
+	PhoneNumber  string `json:"phone_number"`
+	Password     string `json:"password"`
+	ProfileImage string `json:"profile_image"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
 type UserAvatarDelete struct {
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
 type UserAvatarUpdate struct {
-	User   *ent.User       `json:"user"`
+	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
 }
 
+type Users struct {
+	Users  []*User               `json:"users"`
+	Errors []ListEntityErrorCode `json:"errors"`
+}
+
 type VerifyToken struct {
-	User    *ent.User       `json:"user"`
+	User    *User           `json:"user"`
 	IsValid bool            `json:"isValid"`
 	Payload *string         `json:"payload"`
 	Errors  []*AccountError `json:"errors"`
@@ -577,6 +610,47 @@ func (e *NatsErrorCodes) UnmarshalGQL(v interface{}) error {
 }
 
 func (e NatsErrorCodes) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Role string
+
+const (
+	RoleAdmin Role = "ADMIN"
+	RoleUser  Role = "USER"
+)
+
+var AllRole = []Role{
+	RoleAdmin,
+	RoleUser,
+}
+
+func (e Role) IsValid() bool {
+	switch e {
+	case RoleAdmin, RoleUser:
+		return true
+	}
+	return false
+}
+
+func (e Role) String() string {
+	return string(e)
+}
+
+func (e *Role) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Role(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Role", str)
+	}
+	return nil
+}
+
+func (e Role) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

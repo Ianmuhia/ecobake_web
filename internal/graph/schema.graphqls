@@ -1,6 +1,5 @@
 # GraphQL schema example
 #
-# https://gqlgen.com/getting-started/
 
 # https://gqlgen.com/getting-started/
 directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
@@ -8,6 +7,12 @@ directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | I
 # new directive
 directive @auth on FIELD_DEFINITION
 
+directive @hasRole(role: Role!) on FIELD_DEFINITION
+
+enum Role {
+    ADMIN
+    USER
+}
 scalar Any
 
 type Query {
@@ -18,7 +23,7 @@ type Mutation {
     createUser(input:NewUser!):AccountRegister
     createCategory(input:CreateCategory!):Category
     updateCategory(input:CreateCategory!):Category
-    deleteCategory(input:Int!):Any
+    deleteCategory(input:Int!):Boolean! @hasRole(role: ADMIN)
 
 
 
@@ -158,6 +163,7 @@ type User {
     username: String!
     email: String!
     phone_number: String!
+    password: String!
     profile_image: String!
     created_at: String!
     updated_at: String!

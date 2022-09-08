@@ -15,9 +15,12 @@ package controllers
 import (
 	"context"
 	"ecobake/internal/graph"
+	"ecobake/internal/graph/directives"
 	"ecobake/internal/graph/generated"
+	"ecobake/internal/models"
 	"ecobake/pkg/resterrors"
 	"fmt"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -27,15 +30,15 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
-
 	"strings"
+
 	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	authorizationHeaderKey  = "authorization"
+	authorizationHeaderKey  = "Authorization"
 	authorizationTypeBearer = "bearer"
 	authorizationPayloadKey = "authorization_payload"
 )
@@ -51,11 +54,8 @@ func (r *Repository) SetupRouter() *gin.Engine {
 	}))
 
 	_ = router.SetTrustedProxies([]string{"*", "localhost"})
-
-	//router.Any("/query", func(c *gin.Context) {
-	//	r.AuthMiddleware()
-	//	r.playgroundHandler()
-	//})
+	router.Use(GinContextToContextMiddleware())
+	router.Use(r.AuthMiddleware())
 	router.Any("/query", r.graphqlHandler())
 	router.GET("/", r.playgroundHandler())
 
@@ -74,7 +74,10 @@ func (r *Repository) graphqlHandler() gin.HandlerFunc {
 		CategoryService: r.CategoryService,
 		Client:          r.Client,
 		//Client:
-	}}))
+	}, Directives: struct {
+		Auth    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+		HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error)
+	}{Auth: directives.Auth}}))
 	// Configure WebSocket with CORS
 	h.AddTransport(&transport.Websocket{
 		Upgrader: websocket.Upgrader{
@@ -93,9 +96,7 @@ func (r *Repository) graphqlHandler() gin.HandlerFunc {
 		InitFunc:    nil,
 		InitTimeout: 0,
 		ErrorFunc:   nil,
-		//InitFunc:              nil,
-		//InitTimeout:           0,
-		//ErrorFunc:             nil,
+
 		KeepAlivePingInterval: 1 * time.Second,
 		PingPongInterval:      1 * time.Second,
 	})
@@ -153,35 +154,41 @@ func (r *Repository) AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		authorizationHeader := ctx.GetHeader(authorizationHeaderKey)
 
-		if len(authorizationHeader) == 0 {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("authorization header is not provided"))
-			return
+		if len(authorizationHeader) != 0 {
+			fields := strings.Fields(authorizationHeader)
+			if len(fields) < 2 {
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("invalid authorization header format"))
+				return
+			}
+
+			authorizationType := strings.ToLower(fields[0])
+
+			if authorizationType != authorizationTypeBearer {
+				err := fmt.Sprintf("unsupported authorization type %s", authorizationType)
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, err)
+				return
+			}
+
+			accessToken := fields[1]
+			payload, err := r.tokenService.VerifyToken(accessToken)
+
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("invalid authorization header format"))
+				log.Println(err.Error())
+				return
+			}
+			// put it in context
+			//ctx := context.WithValue(gin.Context, userCtxKey, user)
+
+			// and call the next with our new context
+			//r = r.WithContext(ctx)
+			//ctx := context.WithValue(ctx.Request.Context(), authorizationPayloadKey, ctx)
+			//ctx.Request = ctx.Request.WithContext(ctx)
+
+			ctx.Set(authorizationPayloadKey, payload)
+			ctx.Next()
 		}
-
-		fields := strings.Fields(authorizationHeader)
-		if len(fields) < 2 {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("invalid authorization header format"))
-			return
-		}
-
-		authorizationType := strings.ToLower(fields[0])
-
-		if authorizationType != authorizationTypeBearer {
-			err := fmt.Sprintf("unsupported authorization type %s", authorizationType)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, err)
-			return
-		}
-
-		accessToken := fields[1]
-		payload, err := r.tokenService.VerifyToken(accessToken)
-
-		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, resterrors.NewError("invalid authorization header format"))
-			log.Println(err.Error())
-			return
-		}
-
-		ctx.Set(authorizationPayloadKey, payload)
 		ctx.Next()
+
 	}
 }

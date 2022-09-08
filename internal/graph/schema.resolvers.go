@@ -15,44 +15,45 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
-// Categories is the resolver for the categories field.
-func (r *categoriesResolver) Categories(ctx context.Context, obj ent.Categories) ([]*ent.Category, error) {
-	if len(obj) == 0 {
-		return nil, nil
+func GinContextFromContext(ctx context.Context) (*gin.Context, error) {
+	ginContext := ctx.Value("GinContextKey")
+	if ginContext == nil {
+		err := fmt.Errorf("could not retrieve gin.Context")
+		return nil, err
 	}
-	return obj, nil
-}
 
-// Errors is the resolver for the errors field.
-func (r *categoriesResolver) Errors(ctx context.Context, obj ent.Categories) ([]models.ListEntityErrorCode, error) {
-	if len(obj) == 0 {
-		return models.AllListEntityErrorCode, nil
-
+	gc, ok := ginContext.(*gin.Context)
+	if !ok {
+		err := fmt.Errorf("gin.Context has wrong type")
+		return nil, err
 	}
-	return nil, nil
-}
-
-// CreatedAt is the resolver for the created_at field.
-func (r *categoryResolver) CreatedAt(ctx context.Context, obj *ent.Category) (string, error) {
-	return obj.CreatedAt.String(), nil
-}
-
-// UpdatedAt is the resolver for the updated_at field.
-func (r *categoryResolver) UpdatedAt(ctx context.Context, obj *ent.Category) (string, error) {
-	return obj.UpdatedAt.String(), nil
+	return gc, nil
 }
 
 // CreateUser is the resolver for the createUser field.
 func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser) (*models.AccountRegister, error) {
-	_, err := r.UserService.CreateUser(ctx, models.User{
+	gc, err := GinContextFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	log.Println(gc.Get("authorization_payload"))
+	password, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.MinCost)
+	if err != nil {
+		log.Println(err)
+	}
+
+	_, err = r.UserService.CreateUser(ctx, models.User{
 
 		Email:       input.Email,
-		Password:    input.Password,
+		Password:    string(password),
 		PhoneNumber: input.PhoneNumber,
 	})
 	if err != nil {
@@ -72,34 +73,40 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser)
 }
 
 // CreateCategory is the resolver for the createCategory field.
-func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error) {
-	data, err := r.Client.Category.Create().SetIcon(input.Icon).SetName(input.Name).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (*models.Category, error) {
+	//data, err := r.Client.Category.Create().SetIcon(input.Icon).SetName(input.Name).Save(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return data, nil
+	panic('e')
 }
 
 // UpdateCategory is the resolver for the updateCategory field.
-func (r *mutationResolver) UpdateCategory(ctx context.Context, input models.CreateCategory) (*ent.Category, error) {
-	save, err := r.Client.Category.Update().SetName(input.Name).SetUpdatedAt(time.Now()).SetIcon(input.Icon).Save(ctx)
-	if err != nil {
-		return nil, err
-	}
-	only, err := r.Client.Category.Query().Where(category.ID(save)).Only(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return only, nil
+func (r *mutationResolver) UpdateCategory(ctx context.Context, input models.CreateCategory) (*models.Category, error) {
+	//save, err := r.Client.Category.Update().SetName(input.Name).SetUpdatedAt(time.Now()).SetIcon(input.Icon).Save(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//only, err := r.Client.Category.Query().Where(category.ID(save)).Only(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return only, nil
+	panic('e')
 }
 
 // DeleteCategory is the resolver for the deleteCategory field.
-func (r *mutationResolver) DeleteCategory(ctx context.Context, input int) (interface{}, error) {
-	exec, err := r.Client.Category.Delete().Where(category.IDIn(input)).Exec(ctx)
+func (r *mutationResolver) DeleteCategory(ctx context.Context, input int) (bool, error) {
+	_, err := r.Client.Category.Delete().Where(category.IDIn(input)).Exec(ctx)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	return exec, nil
+	return true, nil
+}
+func (r *mutationResolver) CheckPasswordHash(password, passwordHash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
+	return err == nil
 }
 
 // TokenCreate is the resolver for the tokenCreate field.
@@ -116,8 +123,8 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 			},
 		}, nil
 	}
-	m := models.User{PasswordHash: user.PasswordHash}
-	ok := m.CheckPasswordHash(password)
+	//m := models.User{PasswordHash: user.PasswordHash}
+	ok := r.CheckPasswordHash(password, user.Password)
 	if !ok {
 		return &models.CreateToken{
 			Errors: []*models.AccountError{
@@ -131,7 +138,7 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 	}
 	duration := 30 * time.Hour
 	rtduration := time.Duration(time.Now().Add(time.Hour * 100).Unix())
-	accessToken, err := r.TokenService.CreateToken(user.UserName, user.Email, duration, rtduration, user.ID)
+	accessToken, err := r.TokenService.CreateToken(user.PhoneNumber, user.Email, duration, rtduration, int64(user.ID))
 	if err != nil {
 		return &models.CreateToken{
 			Errors: []*models.AccountError{
@@ -146,17 +153,16 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 	return &models.CreateToken{
 		Token:        accessToken,
 		RefreshToken: accessToken,
-		User: &ent.User{
-			ID:           int(user.ID),
-			UserName:     user.UserName,
-			CreatedAt:    user.CreatedAt,
-			PhoneNumber:  user.PhoneNumber,
-			IsVerified:   user.IsVerified,
-			ProfileImage: user.ProfileImage,
+		User: &models.User{
+			ID:           user.ID,
 			Email:        user.Email,
+			PhoneNumber:  user.PhoneNumber,
+			ProfileImage: user.ProfileImage,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    user.UpdatedAt,
 		},
 		Errors: nil,
-	}, err
+	}, nil
 }
 
 // TokenRefresh is the resolver for the tokenRefresh field.
@@ -194,56 +200,57 @@ func (r *mutationResolver) TokenRefresh(ctx context.Context, refreshToken string
 
 // TokenVerify is the resolver for the tokenVerify field.
 func (r *mutationResolver) TokenVerify(ctx context.Context, token string) (*models.VerifyToken, error) {
-	payload, err := r.TokenService.VerifyToken(token)
-	if err != nil {
-		return &models.VerifyToken{
-			Errors: []*models.AccountError{
-				{
-					Field:   "refresh token ",
-					Message: "provided token has expired",
-					Code:    models.AccountErrorCodeJwtInvalidToken,
-				},
-			},
-		}, nil
-	}
-	user, err := r.UserService.GetUserByID(ctx, payload.ID)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return &models.VerifyToken{
-				User:    nil,
-				IsValid: false,
-				Payload: nil,
-				Errors: []*models.AccountError{{
-					Field:   "user",
-					Message: "user not found",
-					Code:    models.AccountErrorCodeNotFound,
-				}}}, nil
-		}
-		return &models.VerifyToken{
-			User:    nil,
-			IsValid: false,
-			Payload: nil,
-			Errors: []*models.AccountError{{
-				Field:   "user",
-				Message: err.Error(),
-				Code:    models.AccountErrorCodeGraphqlError,
-			}},
-		}, nil
-	}
-	return &models.VerifyToken{
-		User: &ent.User{
-			ID:           int(user.ID),
-			UserName:     user.UserName,
-			CreatedAt:    user.CreatedAt,
-			PhoneNumber:  user.PhoneNumber,
-			IsVerified:   user.IsVerified,
-			ProfileImage: user.ProfileImage,
-			Email:        user.Email,
-		},
-		IsValid: true,
-		Payload: nil,
-		Errors:  nil,
-	}, nil
+	//payload, err := r.TokenService.VerifyToken(token)
+	//if err != nil {
+	//	return &models.VerifyToken{
+	//		Errors: []*models.AccountError{
+	//			{
+	//				Field:   "refresh token ",
+	//				Message: "provided token has expired",
+	//				Code:    models.AccountErrorCodeJwtInvalidToken,
+	//			},
+	//		},
+	//	}, nil
+	//}
+	//user, err := r.UserService.GetUserByID(ctx, payload.ID)
+	//if err != nil {
+	//	if ent.IsNotFound(err) {
+	//		return &models.VerifyToken{
+	//			User:    nil,
+	//			IsValid: false,
+	//			Payload: nil,
+	//			Errors: []*models.AccountError{{
+	//				Field:   "user",
+	//				Message: "user not found",
+	//				Code:    models.AccountErrorCodeNotFound,
+	//			}}}, nil
+	//	}
+	//	return &models.VerifyToken{
+	//		User:    nil,
+	//		IsValid: false,
+	//		Payload: nil,
+	//		Errors: []*models.AccountError{{
+	//			Field:   "user",
+	//			Message: err.Error(),
+	//			Code:    models.AccountErrorCodeGraphqlError,
+	//		}},
+	//	}, nil
+	//}
+	//return &models.VerifyToken{
+	//	User: &ent.User{
+	//		ID:           int(user.ID),
+	//		UserName:     user.UserName,
+	//		CreatedAt:    user.CreatedAt,
+	//		PhoneNumber:  user.PhoneNumber,
+	//		IsVerified:   user.IsVerified,
+	//		ProfileImage: user.ProfileImage,
+	//		Email:        user.Email,
+	//	},
+	//	IsValid: true,
+	//	Payload: nil,
+	//	Errors:  nil,
+	//}, nil
+	panic('e')
 }
 
 // TokensDeactivateAll is the resolver for the tokensDeactivateAll field.
@@ -341,57 +348,58 @@ func (r *mutationResolver) SetPassword(ctx context.Context, email string, passwo
 
 // PasswordChange is the resolver for the passwordChange field.
 func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword string, oldPassword string, accessToken string) (*models.PasswordChange, error) {
-	payload, err := r.TokenService.VerifyToken(accessToken)
-	if err != nil {
-		return &models.PasswordChange{
-			Errors: []*models.AccountError{
-				{
-					Field:   "refresh token ",
-					Message: "provided token has expired",
-					Code:    models.AccountErrorCodeJwtInvalidToken,
-				},
-			},
-		}, nil
-	}
-	u, err := r.UserService.GetUserByID(ctx, payload.ID)
-
-	d := models.User{PasswordHash: u.PasswordHash}
-	ok := d.CheckPasswordHash(oldPassword)
-	if !ok {
-		return &models.PasswordChange{
-			User: nil,
-			Errors: []*models.AccountError{{
-				Field:   "user.Password",
-				Message: "provided password does not match",
-				Code:    models.AccountErrorCodeInvalidPassword,
-			}},
-		}, nil
-	}
-	p := models.User{Password: newPassword}
-	err = p.Hash()
-	if err != nil {
-		return &models.PasswordChange{
-			User: nil,
-			Errors: []*models.AccountError{{
-				Field:   "user.Password",
-				Message: "error occurred",
-				Code:    models.AccountErrorCodeGraphqlError,
-			}},
-		}, nil
-	}
-	err = r.UserService.UpdateUserPassword(ctx, payload.ID, p.PasswordHash)
-	if err != nil {
-
-		return &models.PasswordChange{
-			User: nil,
-			Errors: []*models.AccountError{{
-				Field:   "user.Password",
-				Message: "error occurred",
-				Code:    models.AccountErrorCodeGraphqlError,
-			}},
-		}, nil
-	}
-	return nil, nil
+	//payload, err := r.TokenService.VerifyToken(accessToken)
+	//if err != nil {
+	//	return &models.PasswordChange{
+	//		Errors: []*models.AccountError{
+	//			{
+	//				Field:   "refresh token ",
+	//				Message: "provided token has expired",
+	//				Code:    models.AccountErrorCodeJwtInvalidToken,
+	//			},
+	//		},
+	//	}, nil
+	//}
+	//u, err := r.UserService.GetUserByID(ctx, payload.ID)
+	//
+	//d := models.User{PasswordHash: u.PasswordHash}
+	//ok := d.CheckPasswordHash(oldPassword)
+	//if !ok {
+	//	return &models.PasswordChange{
+	//		User: nil,
+	//		Errors: []*models.AccountError{{
+	//			Field:   "user.Password",
+	//			Message: "provided password does not match",
+	//			Code:    models.AccountErrorCodeInvalidPassword,
+	//		}},
+	//	}, nil
+	//}
+	//p := models.User{Password: newPassword}
+	//err = p.Hash()
+	//if err != nil {
+	//	return &models.PasswordChange{
+	//		User: nil,
+	//		Errors: []*models.AccountError{{
+	//			Field:   "user.Password",
+	//			Message: "error occurred",
+	//			Code:    models.AccountErrorCodeGraphqlError,
+	//		}},
+	//	}, nil
+	//}
+	//err = r.UserService.UpdateUserPassword(ctx, payload.ID, p.PasswordHash)
+	//if err != nil {
+	//
+	//	return &models.PasswordChange{
+	//		User: nil,
+	//		Errors: []*models.AccountError{{
+	//			Field:   "user.Password",
+	//			Message: "error occurred",
+	//			Code:    models.AccountErrorCodeGraphqlError,
+	//		}},
+	//	}, nil
+	//}
+	//return nil, nil
+	panic('e')
 }
 
 // RequestEmailChange is the resolver for the requestEmailChange field.
@@ -435,61 +443,51 @@ func (r *mutationResolver) UserAvatarDelete(ctx context.Context, token string) (
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context) (ent.Users, error) {
+func (r *queryResolver) Users(ctx context.Context) (models.Users, error) {
 	users, err := r.Client.User.Query().All(ctx)
 	if err != nil {
-		return nil, err
+		if ent.IsNotFound(err) {
+			return models.Users{
+				Users:  nil,
+				Errors: []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return models.Users{
+			Users:  nil,
+			Errors: nil,
+		}, err
 	}
-	return users, nil
+	m := make([]*models.User, len(users))
+	for i, user := range users {
+		m[i] = &models.User{
+			ID:           user.ID,
+			Email:        user.Email,
+			PhoneNumber:  user.PhoneNumber,
+			ProfileImage: user.ProfileImage,
+			CreatedAt:    user.CreatedAt.String(),
+		}
+
+	}
+	return models.Users{
+		Users:  m,
+		Errors: nil,
+	}, nil
 }
 
 // Categories is the resolver for the categories field.
-func (r *queryResolver) Categories(ctx context.Context) (ent.Categories, error) {
-	data, err := r.Client.Category.Query().All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
+func (r *queryResolver) Categories(ctx context.Context) (*models.Categories, error) {
+	//data, err := r.Client.Category.Query().All(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return data, nil
+	panic('e')
 }
 
 // UserCreated is the resolver for the userCreated field.
-func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan ent.User, error) {
+func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan models.User, error) {
 	panic(fmt.Errorf("not implemented: UserCreated - userCreated"))
 }
-
-// CreatedAt is the resolver for the created_at field.
-func (r *userResolver) CreatedAt(ctx context.Context, obj *ent.User) (string, error) {
-	return obj.CreatedAt.String(), nil
-}
-
-// UpdatedAt is the resolver for the updated_at field.
-func (r *userResolver) UpdatedAt(ctx context.Context, obj *ent.User) (string, error) {
-	return obj.UpdatedAt.String(), nil
-}
-
-// Users is the resolver for the users field.
-func (r *usersResolver) Users(ctx context.Context, obj ent.Users) ([]*ent.User, error) {
-	users, err := r.Client.User.Query().All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}
-
-// Errors is the resolver for the errors field.
-func (r *usersResolver) Errors(ctx context.Context, obj ent.Users) ([]models.ListEntityErrorCode, error) {
-	if len(obj) != 0 {
-		return nil, nil
-	}
-
-	return models.AllListEntityErrorCode, nil
-}
-
-// Categories returns generated.CategoriesResolver implementation.
-func (r *Resolver) Categories() generated.CategoriesResolver { return &categoriesResolver{r} }
-
-// Category returns generated.CategoryResolver implementation.
-func (r *Resolver) Category() generated.CategoryResolver { return &categoryResolver{r} }
 
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
@@ -500,16 +498,6 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Subscription returns generated.SubscriptionResolver implementation.
 func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subscriptionResolver{r} }
 
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
-
-// Users returns generated.UsersResolver implementation.
-func (r *Resolver) Users() generated.UsersResolver { return &usersResolver{r} }
-
-type categoriesResolver struct{ *Resolver }
-type categoryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-type userResolver struct{ *Resolver }
-type usersResolver struct{ *Resolver }
