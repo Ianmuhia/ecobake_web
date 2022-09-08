@@ -3,18 +3,67 @@
 package ent
 
 import (
+	"ecobake/ent/category"
 	"ecobake/ent/product"
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 )
 
 // Product is the model entity for the Product schema.
 type Product struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
+	// Price holds the value of the "price" field.
+	Price string `json:"price,omitempty"`
+	// Description holds the value of the "description" field.
+	Description string `json:"description,omitempty"`
+	// Ingredients holds the value of the "ingredients" field.
+	Ingredients string `json:"ingredients,omitempty"`
+	// TotalRating holds the value of the "totalRating" field.
+	TotalRating float64 `json:"totalRating,omitempty"`
+	// Images holds the value of the "images" field.
+	Images []string `json:"images,omitempty"`
+	// CreatedAt holds the value of the "created_at" field.
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	// UpdatedAt holds the value of the "updated_at" field.
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// DeletedAt holds the value of the "deleted_at" field.
+	DeletedAt time.Time `json:"deleted_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the ProductQuery when eager-loading is set.
+	Edges            ProductEdges `json:"edges"`
+	category_product *int
+}
+
+// ProductEdges holds the relations/edges for other nodes in the graph.
+type ProductEdges struct {
+	// Category holds the value of the category edge.
+	Category *Category `json:"category,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+}
+
+// CategoryOrErr returns the Category value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProductEdges) CategoryOrErr() (*Category, error) {
+	if e.loadedTypes[0] {
+		if e.Category == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: category.Label}
+		}
+		return e.Category, nil
+	}
+	return nil, &NotLoadedError{edge: "category"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -22,7 +71,17 @@ func (*Product) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case product.FieldImages:
+			values[i] = new([]byte)
+		case product.FieldTotalRating:
+			values[i] = new(sql.NullFloat64)
 		case product.FieldID:
+			values[i] = new(sql.NullInt64)
+		case product.FieldName, product.FieldPrice, product.FieldDescription, product.FieldIngredients:
+			values[i] = new(sql.NullString)
+		case product.FieldCreatedAt, product.FieldUpdatedAt, product.FieldDeletedAt:
+			values[i] = new(sql.NullTime)
+		case product.ForeignKeys[0]: // category_product
 			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Product", columns[i])
@@ -45,9 +104,77 @@ func (pr *Product) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			pr.ID = int(value.Int64)
+		case product.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				pr.Name = value.String
+			}
+		case product.FieldPrice:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field price", values[i])
+			} else if value.Valid {
+				pr.Price = value.String
+			}
+		case product.FieldDescription:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field description", values[i])
+			} else if value.Valid {
+				pr.Description = value.String
+			}
+		case product.FieldIngredients:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field ingredients", values[i])
+			} else if value.Valid {
+				pr.Ingredients = value.String
+			}
+		case product.FieldTotalRating:
+			if value, ok := values[i].(*sql.NullFloat64); !ok {
+				return fmt.Errorf("unexpected type %T for field totalRating", values[i])
+			} else if value.Valid {
+				pr.TotalRating = value.Float64
+			}
+		case product.FieldImages:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field images", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &pr.Images); err != nil {
+					return fmt.Errorf("unmarshal field images: %w", err)
+				}
+			}
+		case product.FieldCreatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field created_at", values[i])
+			} else if value.Valid {
+				pr.CreatedAt = value.Time
+			}
+		case product.FieldUpdatedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
+			} else if value.Valid {
+				pr.UpdatedAt = value.Time
+			}
+		case product.FieldDeletedAt:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field deleted_at", values[i])
+			} else if value.Valid {
+				pr.DeletedAt = value.Time
+			}
+		case product.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field category_product", value)
+			} else if value.Valid {
+				pr.category_product = new(int)
+				*pr.category_product = int(value.Int64)
+			}
 		}
 	}
 	return nil
+}
+
+// QueryCategory queries the "category" edge of the Product entity.
+func (pr *Product) QueryCategory() *CategoryQuery {
+	return (&ProductClient{config: pr.config}).QueryCategory(pr)
 }
 
 // Update returns a builder for updating this Product.
@@ -72,7 +199,33 @@ func (pr *Product) Unwrap() *Product {
 func (pr *Product) String() string {
 	var builder strings.Builder
 	builder.WriteString("Product(")
-	builder.WriteString(fmt.Sprintf("id=%v", pr.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", pr.ID))
+	builder.WriteString("name=")
+	builder.WriteString(pr.Name)
+	builder.WriteString(", ")
+	builder.WriteString("price=")
+	builder.WriteString(pr.Price)
+	builder.WriteString(", ")
+	builder.WriteString("description=")
+	builder.WriteString(pr.Description)
+	builder.WriteString(", ")
+	builder.WriteString("ingredients=")
+	builder.WriteString(pr.Ingredients)
+	builder.WriteString(", ")
+	builder.WriteString("totalRating=")
+	builder.WriteString(fmt.Sprintf("%v", pr.TotalRating))
+	builder.WriteString(", ")
+	builder.WriteString("images=")
+	builder.WriteString(fmt.Sprintf("%v", pr.Images))
+	builder.WriteString(", ")
+	builder.WriteString("created_at=")
+	builder.WriteString(pr.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("updated_at=")
+	builder.WriteString(pr.UpdatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("deleted_at=")
+	builder.WriteString(pr.DeletedAt.Format(time.ANSIC))
 	builder.WriteByte(')')
 	return builder.String()
 }

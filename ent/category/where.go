@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // ID filters vertices based on their ID field.
@@ -342,6 +343,20 @@ func UpdatedAtLTE(v time.Time) predicate.Category {
 	})
 }
 
+// UpdatedAtIsNil applies the IsNil predicate on the "updated_at" field.
+func UpdatedAtIsNil() predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldUpdatedAt)))
+	})
+}
+
+// UpdatedAtNotNil applies the NotNil predicate on the "updated_at" field.
+func UpdatedAtNotNil() predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldUpdatedAt)))
+	})
+}
+
 // DeletedAtEQ applies the EQ predicate on the "deleted_at" field.
 func DeletedAtEQ(v time.Time) predicate.Category {
 	return predicate.Category(func(s *sql.Selector) {
@@ -403,6 +418,20 @@ func DeletedAtLT(v time.Time) predicate.Category {
 func DeletedAtLTE(v time.Time) predicate.Category {
 	return predicate.Category(func(s *sql.Selector) {
 		s.Where(sql.LTE(s.C(FieldDeletedAt), v))
+	})
+}
+
+// DeletedAtIsNil applies the IsNil predicate on the "deleted_at" field.
+func DeletedAtIsNil() predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldDeletedAt)))
+	})
+}
+
+// DeletedAtNotNil applies the NotNil predicate on the "deleted_at" field.
+func DeletedAtNotNil() predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldDeletedAt)))
 	})
 }
 
@@ -502,6 +531,34 @@ func IconEqualFold(v string) predicate.Category {
 func IconContainsFold(v string) predicate.Category {
 	return predicate.Category(func(s *sql.Selector) {
 		s.Where(sql.ContainsFold(s.C(FieldIcon), v))
+	})
+}
+
+// HasProduct applies the HasEdge predicate on the "product" edge.
+func HasProduct() predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ProductTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProductTable, ProductColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasProductWith applies the HasEdge predicate on the "product" edge with a given conditions (other predicates).
+func HasProductWith(preds ...predicate.Product) predicate.Category {
+	return predicate.Category(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.To(ProductInverseTable, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ProductTable, ProductColumn),
+		)
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
 	})
 }
 

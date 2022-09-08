@@ -53,7 +53,7 @@ func (c *Category) Node(ctx context.Context) (node *Node, err error) {
 		ID:     c.ID,
 		Type:   "Category",
 		Fields: make([]*Field, 5),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(c.Name); err != nil {
@@ -96,6 +96,16 @@ func (c *Category) Node(ctx context.Context) (node *Node, err error) {
 		Name:  "icon",
 		Value: string(buf),
 	}
+	node.Edges[0] = &Edge{
+		Type: "Product",
+		Name: "product",
+	}
+	err = c.QueryProduct().
+		Select(product.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
 	return node, nil
 }
 
@@ -103,8 +113,91 @@ func (pr *Product) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     pr.ID,
 		Type:   "Product",
-		Fields: make([]*Field, 0),
-		Edges:  make([]*Edge, 0),
+		Fields: make([]*Field, 9),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(pr.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.Price); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "string",
+		Name:  "price",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.Description); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "description",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.Ingredients); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "string",
+		Name:  "ingredients",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.TotalRating); err != nil {
+		return nil, err
+	}
+	node.Fields[4] = &Field{
+		Type:  "float64",
+		Name:  "totalRating",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.Images); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
+		Type:  "[]string",
+		Name:  "images",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.CreatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[6] = &Field{
+		Type:  "time.Time",
+		Name:  "created_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.UpdatedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[7] = &Field{
+		Type:  "time.Time",
+		Name:  "updated_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(pr.DeletedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[8] = &Field{
+		Type:  "time.Time",
+		Name:  "deleted_at",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Category",
+		Name: "category",
+	}
+	err = pr.QueryCategory().
+		Select(category.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }

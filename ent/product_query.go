@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"ecobake/ent/category"
 	"ecobake/ent/predicate"
 	"ecobake/ent/product"
 	"fmt"
@@ -17,14 +18,16 @@ import (
 // ProductQuery is the builder for querying Product entities.
 type ProductQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.Product
-	modifiers  []func(*sql.Selector)
-	loadTotal  []func(context.Context, []*Product) error
+	limit        *int
+	offset       *int
+	unique       *bool
+	order        []OrderFunc
+	fields       []string
+	predicates   []predicate.Product
+	withCategory *CategoryQuery
+	withFKs      bool
+	modifiers    []func(*sql.Selector)
+	loadTotal    []func(context.Context, []*Product) error
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,6 +62,28 @@ func (pq *ProductQuery) Unique(unique bool) *ProductQuery {
 func (pq *ProductQuery) Order(o ...OrderFunc) *ProductQuery {
 	pq.order = append(pq.order, o...)
 	return pq
+}
+
+// QueryCategory chains the current query on the "category" edge.
+func (pq *ProductQuery) QueryCategory() *CategoryQuery {
+	query := &CategoryQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, product.CategoryTable, product.CategoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Product entity from the query.
@@ -237,11 +262,12 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 		return nil
 	}
 	return &ProductQuery{
-		config:     pq.config,
-		limit:      pq.limit,
-		offset:     pq.offset,
-		order:      append([]OrderFunc{}, pq.order...),
-		predicates: append([]predicate.Product{}, pq.predicates...),
+		config:       pq.config,
+		limit:        pq.limit,
+		offset:       pq.offset,
+		order:        append([]OrderFunc{}, pq.order...),
+		predicates:   append([]predicate.Product{}, pq.predicates...),
+		withCategory: pq.withCategory.Clone(),
 		// clone intermediate query.
 		sql:    pq.sql.Clone(),
 		path:   pq.path,
@@ -249,8 +275,31 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 	}
 }
 
+// WithCategory tells the query-builder to eager-load the nodes that are connected to
+// the "category" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProductQuery) WithCategory(opts ...func(*CategoryQuery)) *ProductQuery {
+	query := &CategoryQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withCategory = query
+	return pq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Product.Query().
+//		GroupBy(product.FieldName).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (pq *ProductQuery) GroupBy(field string, fields ...string) *ProductGroupBy {
 	grbuild := &ProductGroupBy{config: pq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -267,6 +316,16 @@ func (pq *ProductQuery) GroupBy(field string, fields ...string) *ProductGroupBy 
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		Name string `json:"name,omitempty"`
+//	}
+//
+//	client.Product.Query().
+//		Select(product.FieldName).
+//		Scan(ctx, &v)
 func (pq *ProductQuery) Select(fields ...string) *ProductSelect {
 	pq.fields = append(pq.fields, fields...)
 	selbuild := &ProductSelect{ProductQuery: pq}
@@ -293,15 +352,26 @@ func (pq *ProductQuery) prepareQuery(ctx context.Context) error {
 
 func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Product, error) {
 	var (
-		nodes = []*Product{}
-		_spec = pq.querySpec()
+		nodes       = []*Product{}
+		withFKs     = pq.withFKs
+		_spec       = pq.querySpec()
+		loadedTypes = [1]bool{
+			pq.withCategory != nil,
+		}
 	)
+	if pq.withCategory != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, product.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		return (*Product).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []interface{}) error {
 		node := &Product{config: pq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(pq.modifiers) > 0 {
@@ -316,12 +386,48 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := pq.withCategory; query != nil {
+		if err := pq.loadCategory(ctx, query, nodes, nil,
+			func(n *Product, e *Category) { n.Edges.Category = e }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range pq.loadTotal {
 		if err := pq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (pq *ProductQuery) loadCategory(ctx context.Context, query *CategoryQuery, nodes []*Product, init func(*Product), assign func(*Product, *Category)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Product)
+	for i := range nodes {
+		if nodes[i].category_product == nil {
+			continue
+		}
+		fk := *nodes[i].category_product
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(category.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "category_product" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
 }
 
 func (pq *ProductQuery) sqlCount(ctx context.Context) (int, error) {

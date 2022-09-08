@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"ecobake/ent/category"
 	"ecobake/ent/predicate"
 	"ecobake/ent/product"
 	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -27,9 +29,139 @@ func (pu *ProductUpdate) Where(ps ...predicate.Product) *ProductUpdate {
 	return pu
 }
 
+// SetName sets the "name" field.
+func (pu *ProductUpdate) SetName(s string) *ProductUpdate {
+	pu.mutation.SetName(s)
+	return pu
+}
+
+// SetPrice sets the "price" field.
+func (pu *ProductUpdate) SetPrice(s string) *ProductUpdate {
+	pu.mutation.SetPrice(s)
+	return pu
+}
+
+// SetDescription sets the "description" field.
+func (pu *ProductUpdate) SetDescription(s string) *ProductUpdate {
+	pu.mutation.SetDescription(s)
+	return pu
+}
+
+// SetIngredients sets the "ingredients" field.
+func (pu *ProductUpdate) SetIngredients(s string) *ProductUpdate {
+	pu.mutation.SetIngredients(s)
+	return pu
+}
+
+// SetTotalRating sets the "totalRating" field.
+func (pu *ProductUpdate) SetTotalRating(f float64) *ProductUpdate {
+	pu.mutation.ResetTotalRating()
+	pu.mutation.SetTotalRating(f)
+	return pu
+}
+
+// SetNillableTotalRating sets the "totalRating" field if the given value is not nil.
+func (pu *ProductUpdate) SetNillableTotalRating(f *float64) *ProductUpdate {
+	if f != nil {
+		pu.SetTotalRating(*f)
+	}
+	return pu
+}
+
+// AddTotalRating adds f to the "totalRating" field.
+func (pu *ProductUpdate) AddTotalRating(f float64) *ProductUpdate {
+	pu.mutation.AddTotalRating(f)
+	return pu
+}
+
+// SetImages sets the "images" field.
+func (pu *ProductUpdate) SetImages(s []string) *ProductUpdate {
+	pu.mutation.SetImages(s)
+	return pu
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (pu *ProductUpdate) SetCreatedAt(t time.Time) *ProductUpdate {
+	pu.mutation.SetCreatedAt(t)
+	return pu
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (pu *ProductUpdate) SetNillableCreatedAt(t *time.Time) *ProductUpdate {
+	if t != nil {
+		pu.SetCreatedAt(*t)
+	}
+	return pu
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (pu *ProductUpdate) SetUpdatedAt(t time.Time) *ProductUpdate {
+	pu.mutation.SetUpdatedAt(t)
+	return pu
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (pu *ProductUpdate) SetNillableUpdatedAt(t *time.Time) *ProductUpdate {
+	if t != nil {
+		pu.SetUpdatedAt(*t)
+	}
+	return pu
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (pu *ProductUpdate) ClearUpdatedAt() *ProductUpdate {
+	pu.mutation.ClearUpdatedAt()
+	return pu
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (pu *ProductUpdate) SetDeletedAt(t time.Time) *ProductUpdate {
+	pu.mutation.SetDeletedAt(t)
+	return pu
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (pu *ProductUpdate) SetNillableDeletedAt(t *time.Time) *ProductUpdate {
+	if t != nil {
+		pu.SetDeletedAt(*t)
+	}
+	return pu
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (pu *ProductUpdate) ClearDeletedAt() *ProductUpdate {
+	pu.mutation.ClearDeletedAt()
+	return pu
+}
+
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (pu *ProductUpdate) SetCategoryID(id int) *ProductUpdate {
+	pu.mutation.SetCategoryID(id)
+	return pu
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (pu *ProductUpdate) SetNillableCategoryID(id *int) *ProductUpdate {
+	if id != nil {
+		pu = pu.SetCategoryID(*id)
+	}
+	return pu
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (pu *ProductUpdate) SetCategory(c *Category) *ProductUpdate {
+	return pu.SetCategoryID(c.ID)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (pu *ProductUpdate) Mutation() *ProductMutation {
 	return pu.mutation
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (pu *ProductUpdate) ClearCategory() *ProductUpdate {
+	pu.mutation.ClearCategory()
+	return pu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -39,12 +171,18 @@ func (pu *ProductUpdate) Save(ctx context.Context) (int, error) {
 		affected int
 	)
 	if len(pu.hooks) == 0 {
+		if err = pu.check(); err != nil {
+			return 0, err
+		}
 		affected, err = pu.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ProductMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = pu.check(); err != nil {
+				return 0, err
 			}
 			pu.mutation = mutation
 			affected, err = pu.sqlSave(ctx)
@@ -86,6 +224,31 @@ func (pu *ProductUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (pu *ProductUpdate) check() error {
+	if v, ok := pu.mutation.Name(); ok {
+		if err := product.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
+		}
+	}
+	if v, ok := pu.mutation.Price(); ok {
+		if err := product.PriceValidator(v); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "Product.price": %w`, err)}
+		}
+	}
+	if v, ok := pu.mutation.Description(); ok {
+		if err := product.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "Product.description": %w`, err)}
+		}
+	}
+	if v, ok := pu.mutation.Ingredients(); ok {
+		if err := product.IngredientsValidator(v); err != nil {
+			return &ValidationError{Name: "ingredients", err: fmt.Errorf(`ent: validator failed for field "Product.ingredients": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (pu *ProductUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -103,6 +266,123 @@ func (pu *ProductUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := pu.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldName,
+		})
+	}
+	if value, ok := pu.mutation.Price(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldPrice,
+		})
+	}
+	if value, ok := pu.mutation.Description(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldDescription,
+		})
+	}
+	if value, ok := pu.mutation.Ingredients(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldIngredients,
+		})
+	}
+	if value, ok := pu.mutation.TotalRating(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: product.FieldTotalRating,
+		})
+	}
+	if value, ok := pu.mutation.AddedTotalRating(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: product.FieldTotalRating,
+		})
+	}
+	if value, ok := pu.mutation.Images(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: product.FieldImages,
+		})
+	}
+	if value, ok := pu.mutation.CreatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldCreatedAt,
+		})
+	}
+	if value, ok := pu.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldUpdatedAt,
+		})
+	}
+	if pu.mutation.UpdatedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: product.FieldUpdatedAt,
+		})
+	}
+	if value, ok := pu.mutation.DeletedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldDeletedAt,
+		})
+	}
+	if pu.mutation.DeletedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: product.FieldDeletedAt,
+		})
+	}
+	if pu.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: category.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: category.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -123,9 +403,139 @@ type ProductUpdateOne struct {
 	mutation *ProductMutation
 }
 
+// SetName sets the "name" field.
+func (puo *ProductUpdateOne) SetName(s string) *ProductUpdateOne {
+	puo.mutation.SetName(s)
+	return puo
+}
+
+// SetPrice sets the "price" field.
+func (puo *ProductUpdateOne) SetPrice(s string) *ProductUpdateOne {
+	puo.mutation.SetPrice(s)
+	return puo
+}
+
+// SetDescription sets the "description" field.
+func (puo *ProductUpdateOne) SetDescription(s string) *ProductUpdateOne {
+	puo.mutation.SetDescription(s)
+	return puo
+}
+
+// SetIngredients sets the "ingredients" field.
+func (puo *ProductUpdateOne) SetIngredients(s string) *ProductUpdateOne {
+	puo.mutation.SetIngredients(s)
+	return puo
+}
+
+// SetTotalRating sets the "totalRating" field.
+func (puo *ProductUpdateOne) SetTotalRating(f float64) *ProductUpdateOne {
+	puo.mutation.ResetTotalRating()
+	puo.mutation.SetTotalRating(f)
+	return puo
+}
+
+// SetNillableTotalRating sets the "totalRating" field if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableTotalRating(f *float64) *ProductUpdateOne {
+	if f != nil {
+		puo.SetTotalRating(*f)
+	}
+	return puo
+}
+
+// AddTotalRating adds f to the "totalRating" field.
+func (puo *ProductUpdateOne) AddTotalRating(f float64) *ProductUpdateOne {
+	puo.mutation.AddTotalRating(f)
+	return puo
+}
+
+// SetImages sets the "images" field.
+func (puo *ProductUpdateOne) SetImages(s []string) *ProductUpdateOne {
+	puo.mutation.SetImages(s)
+	return puo
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (puo *ProductUpdateOne) SetCreatedAt(t time.Time) *ProductUpdateOne {
+	puo.mutation.SetCreatedAt(t)
+	return puo
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableCreatedAt(t *time.Time) *ProductUpdateOne {
+	if t != nil {
+		puo.SetCreatedAt(*t)
+	}
+	return puo
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (puo *ProductUpdateOne) SetUpdatedAt(t time.Time) *ProductUpdateOne {
+	puo.mutation.SetUpdatedAt(t)
+	return puo
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableUpdatedAt(t *time.Time) *ProductUpdateOne {
+	if t != nil {
+		puo.SetUpdatedAt(*t)
+	}
+	return puo
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (puo *ProductUpdateOne) ClearUpdatedAt() *ProductUpdateOne {
+	puo.mutation.ClearUpdatedAt()
+	return puo
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (puo *ProductUpdateOne) SetDeletedAt(t time.Time) *ProductUpdateOne {
+	puo.mutation.SetDeletedAt(t)
+	return puo
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableDeletedAt(t *time.Time) *ProductUpdateOne {
+	if t != nil {
+		puo.SetDeletedAt(*t)
+	}
+	return puo
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (puo *ProductUpdateOne) ClearDeletedAt() *ProductUpdateOne {
+	puo.mutation.ClearDeletedAt()
+	return puo
+}
+
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (puo *ProductUpdateOne) SetCategoryID(id int) *ProductUpdateOne {
+	puo.mutation.SetCategoryID(id)
+	return puo
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableCategoryID(id *int) *ProductUpdateOne {
+	if id != nil {
+		puo = puo.SetCategoryID(*id)
+	}
+	return puo
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (puo *ProductUpdateOne) SetCategory(c *Category) *ProductUpdateOne {
+	return puo.SetCategoryID(c.ID)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (puo *ProductUpdateOne) Mutation() *ProductMutation {
 	return puo.mutation
+}
+
+// ClearCategory clears the "category" edge to the Category entity.
+func (puo *ProductUpdateOne) ClearCategory() *ProductUpdateOne {
+	puo.mutation.ClearCategory()
+	return puo
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -142,12 +552,18 @@ func (puo *ProductUpdateOne) Save(ctx context.Context) (*Product, error) {
 		node *Product
 	)
 	if len(puo.hooks) == 0 {
+		if err = puo.check(); err != nil {
+			return nil, err
+		}
 		node, err = puo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*ProductMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = puo.check(); err != nil {
+				return nil, err
 			}
 			puo.mutation = mutation
 			node, err = puo.sqlSave(ctx)
@@ -195,6 +611,31 @@ func (puo *ProductUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (puo *ProductUpdateOne) check() error {
+	if v, ok := puo.mutation.Name(); ok {
+		if err := product.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
+		}
+	}
+	if v, ok := puo.mutation.Price(); ok {
+		if err := product.PriceValidator(v); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "Product.price": %w`, err)}
+		}
+	}
+	if v, ok := puo.mutation.Description(); ok {
+		if err := product.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "Product.description": %w`, err)}
+		}
+	}
+	if v, ok := puo.mutation.Ingredients(); ok {
+		if err := product.IngredientsValidator(v); err != nil {
+			return &ValidationError{Name: "ingredients", err: fmt.Errorf(`ent: validator failed for field "Product.ingredients": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (puo *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -229,6 +670,123 @@ func (puo *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err e
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := puo.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldName,
+		})
+	}
+	if value, ok := puo.mutation.Price(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldPrice,
+		})
+	}
+	if value, ok := puo.mutation.Description(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldDescription,
+		})
+	}
+	if value, ok := puo.mutation.Ingredients(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldIngredients,
+		})
+	}
+	if value, ok := puo.mutation.TotalRating(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: product.FieldTotalRating,
+		})
+	}
+	if value, ok := puo.mutation.AddedTotalRating(); ok {
+		_spec.Fields.Add = append(_spec.Fields.Add, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: product.FieldTotalRating,
+		})
+	}
+	if value, ok := puo.mutation.Images(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: product.FieldImages,
+		})
+	}
+	if value, ok := puo.mutation.CreatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldCreatedAt,
+		})
+	}
+	if value, ok := puo.mutation.UpdatedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldUpdatedAt,
+		})
+	}
+	if puo.mutation.UpdatedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: product.FieldUpdatedAt,
+		})
+	}
+	if value, ok := puo.mutation.DeletedAt(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldDeletedAt,
+		})
+	}
+	if puo.mutation.DeletedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: product.FieldDeletedAt,
+		})
+	}
+	if puo.mutation.CategoryCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: category.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: category.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Product{config: puo.config}
 	_spec.Assign = _node.assignValues

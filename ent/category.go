@@ -26,6 +26,31 @@ type Category struct {
 	DeletedAt time.Time `json:"deleted_at,omitempty"`
 	// Icon holds the value of the "icon" field.
 	Icon string `json:"icon,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the CategoryQuery when eager-loading is set.
+	Edges CategoryEdges `json:"edges"`
+}
+
+// CategoryEdges holds the relations/edges for other nodes in the graph.
+type CategoryEdges struct {
+	// Product holds the value of the product edge.
+	Product []*Product `json:"product,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+
+	namedProduct map[string][]*Product
+}
+
+// ProductOrErr returns the Product value or an error if the edge
+// was not loaded in eager-loading.
+func (e CategoryEdges) ProductOrErr() ([]*Product, error) {
+	if e.loadedTypes[0] {
+		return e.Product, nil
+	}
+	return nil, &NotLoadedError{edge: "product"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -95,6 +120,11 @@ func (c *Category) assignValues(columns []string, values []interface{}) error {
 	return nil
 }
 
+// QueryProduct queries the "product" edge of the Category entity.
+func (c *Category) QueryProduct() *ProductQuery {
+	return (&CategoryClient{config: c.config}).QueryProduct(c)
+}
+
 // Update returns a builder for updating this Category.
 // Note that you need to call Category.Unwrap() before calling this method if this Category
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -134,6 +164,30 @@ func (c *Category) String() string {
 	builder.WriteString(c.Icon)
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedProduct returns the Product named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (c *Category) NamedProduct(name string) ([]*Product, error) {
+	if c.Edges.namedProduct == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := c.Edges.namedProduct[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (c *Category) appendNamedProduct(name string, edges ...*Product) {
+	if c.Edges.namedProduct == nil {
+		c.Edges.namedProduct = make(map[string][]*Product)
+	}
+	if len(edges) == 0 {
+		c.Edges.namedProduct[name] = []*Product{}
+	} else {
+		c.Edges.namedProduct[name] = append(c.Edges.namedProduct[name], edges...)
+	}
 }
 
 // Categories is a parsable slice of Category.

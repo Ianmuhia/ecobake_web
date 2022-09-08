@@ -23,6 +23,22 @@ func (c *CategoryQuery) CollectFields(ctx context.Context, satisfies ...string) 
 
 func (c *CategoryQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
 	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "product":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &ProductQuery{config: c.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			c.WithNamedProduct(alias, func(wq *ProductQuery) {
+				*wq = *query
+			})
+		}
+	}
 	return nil
 }
 
@@ -66,6 +82,20 @@ func (pr *ProductQuery) CollectFields(ctx context.Context, satisfies ...string) 
 
 func (pr *ProductQuery) collectField(ctx context.Context, op *graphql.OperationContext, field graphql.CollectedField, path []string, satisfies ...string) error {
 	path = append([]string(nil), path...)
+	for _, field := range graphql.CollectFields(op, field.Selections, satisfies) {
+		switch field.Name {
+		case "category":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &CategoryQuery{config: pr.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			pr.withCategory = query
+		}
+	}
 	return nil
 }
 

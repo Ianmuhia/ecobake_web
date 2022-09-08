@@ -13,8 +13,8 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "name", Type: field.TypeString, Unique: true},
 		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "deleted_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
 		{Name: "icon", Type: field.TypeString, Unique: true},
 	}
 	// CategoriesTable holds the schema information for the "categories" table.
@@ -26,12 +26,30 @@ var (
 	// ProductsColumns holds the columns for the "products" table.
 	ProductsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "price", Type: field.TypeString},
+		{Name: "description", Type: field.TypeString},
+		{Name: "ingredients", Type: field.TypeString},
+		{Name: "total_rating", Type: field.TypeFloat64, Default: 0},
+		{Name: "images", Type: field.TypeJSON},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "category_product", Type: field.TypeInt, Nullable: true},
 	}
 	// ProductsTable holds the schema information for the "products" table.
 	ProductsTable = &schema.Table{
 		Name:       "products",
 		Columns:    ProductsColumns,
 		PrimaryKey: []*schema.Column{ProductsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "products_categories_product",
+				Columns:    []*schema.Column{ProductsColumns[10]},
+				RefColumns: []*schema.Column{CategoriesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
 	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
@@ -68,4 +86,5 @@ var (
 )
 
 func init() {
+	ProductsTable.ForeignKeys[0].RefTable = CategoriesTable
 }

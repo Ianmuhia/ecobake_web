@@ -16,6 +16,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // Client is the client that holds all ent builders.
@@ -223,6 +224,22 @@ func (c *CategoryClient) GetX(ctx context.Context, id int) *Category {
 	return obj
 }
 
+// QueryProduct queries the product edge of a Category.
+func (c *CategoryClient) QueryProduct(ca *Category) *ProductQuery {
+	query := &ProductQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := ca.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(category.Table, category.FieldID, id),
+			sqlgraph.To(product.Table, product.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, category.ProductTable, category.ProductColumn),
+		)
+		fromV = sqlgraph.Neighbors(ca.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *CategoryClient) Hooks() []Hook {
 	return c.hooks.Category
@@ -311,6 +328,22 @@ func (c *ProductClient) GetX(ctx context.Context, id int) *Product {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryCategory queries the category edge of a Product.
+func (c *ProductClient) QueryCategory(pr *Product) *CategoryQuery {
+	query := &CategoryQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, id),
+			sqlgraph.To(category.Table, category.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, product.CategoryTable, product.CategoryColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

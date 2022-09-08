@@ -2,18 +2,64 @@
 
 package product
 
+import (
+	"time"
+)
+
 const (
 	// Label holds the string label denoting the product type in the database.
 	Label = "product"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldPrice holds the string denoting the price field in the database.
+	FieldPrice = "price"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
+	// FieldIngredients holds the string denoting the ingredients field in the database.
+	FieldIngredients = "ingredients"
+	// FieldTotalRating holds the string denoting the totalrating field in the database.
+	FieldTotalRating = "total_rating"
+	// FieldImages holds the string denoting the images field in the database.
+	FieldImages = "images"
+	// FieldCreatedAt holds the string denoting the created_at field in the database.
+	FieldCreatedAt = "created_at"
+	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
+	FieldUpdatedAt = "updated_at"
+	// FieldDeletedAt holds the string denoting the deleted_at field in the database.
+	FieldDeletedAt = "deleted_at"
+	// EdgeCategory holds the string denoting the category edge name in mutations.
+	EdgeCategory = "category"
 	// Table holds the table name of the product in the database.
 	Table = "products"
+	// CategoryTable is the table that holds the category relation/edge.
+	CategoryTable = "products"
+	// CategoryInverseTable is the table name for the Category entity.
+	// It exists in this package in order to avoid circular dependency with the "category" package.
+	CategoryInverseTable = "categories"
+	// CategoryColumn is the table column denoting the category relation/edge.
+	CategoryColumn = "category_product"
 )
 
 // Columns holds all SQL columns for product fields.
 var Columns = []string{
 	FieldID,
+	FieldName,
+	FieldPrice,
+	FieldDescription,
+	FieldIngredients,
+	FieldTotalRating,
+	FieldImages,
+	FieldCreatedAt,
+	FieldUpdatedAt,
+	FieldDeletedAt,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "products"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"category_product",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -23,5 +69,27 @@ func ValidColumn(column string) bool {
 			return true
 		}
 	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
+			return true
+		}
+	}
 	return false
 }
+
+var (
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+	// PriceValidator is a validator for the "price" field. It is called by the builders before save.
+	PriceValidator func(string) error
+	// DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	DescriptionValidator func(string) error
+	// IngredientsValidator is a validator for the "ingredients" field. It is called by the builders before save.
+	IngredientsValidator func(string) error
+	// DefaultTotalRating holds the default value on creation for the "totalRating" field.
+	DefaultTotalRating float64
+	// DefaultImages holds the default value on creation for the "images" field.
+	DefaultImages []string
+	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
+	DefaultCreatedAt time.Time
+)

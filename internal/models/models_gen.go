@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type Node interface {
@@ -25,8 +27,10 @@ type AccountError struct {
 }
 
 type AccountInput struct {
-	FirstName *string `json:"firstName"`
-	LastName  *string `json:"lastName"`
+	FirstName   string `json:"firstName"`
+	LastName    string `json:"lastName"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
 }
 
 type AccountRegister struct {
@@ -146,6 +150,16 @@ type LoginUser struct {
 	Email    string `json:"email"`
 }
 
+type NewProduct struct {
+	Name                 string            `json:"name"`
+	Price                string            `json:"price"`
+	Category             int               `json:"category"`
+	Description          string            `json:"description"`
+	Ingredients          string            `json:"ingredients"`
+	Images               []*graphql.Upload `json:"images"`
+	AvailableForPurchase string            `json:"availableForPurchase"`
+}
+
 type NewUser struct {
 	Password    string `json:"password"`
 	PhoneNumber string `json:"phone_number"`
@@ -155,6 +169,24 @@ type NewUser struct {
 type PasswordChange struct {
 	User   *User           `json:"user"`
 	Errors []*AccountError `json:"errors"`
+}
+
+type Product struct {
+	ID          int      `json:"id"`
+	Name        string   `json:"name"`
+	Price       string   `json:"price"`
+	Category    Category `json:"category"`
+	Description string   `json:"description"`
+	Ingredients string   `json:"ingredients"`
+	TotalRating float64  `json:"totalRating"`
+	Images      []*File  `json:"images"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
+}
+
+type ProductCreateResponse struct {
+	Errors  []ProductErrorCode `json:"errors"`
+	Product Product            `json:"product"`
 }
 
 type RefreshToken struct {
@@ -184,6 +216,10 @@ type UploadError struct {
 	Field   *string         `json:"field"`
 	Message *string         `json:"message"`
 	Code    UploadErrorCode `json:"code"`
+}
+
+type UploadFile struct {
+	File graphql.Upload `json:"file"`
 }
 
 type User struct {
@@ -610,6 +646,59 @@ func (e *NatsErrorCodes) UnmarshalGQL(v interface{}) error {
 }
 
 func (e NatsErrorCodes) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ProductErrorCode string
+
+const (
+	ProductErrorCodeDuplicatedInputItem               ProductErrorCode = "DUPLICATED_INPUT_ITEM"
+	ProductErrorCodeGraphqlError                      ProductErrorCode = "GRAPHQL_ERROR"
+	ProductErrorCodeImageUploadError                  ProductErrorCode = "IMAGE_UPLOAD_ERROR"
+	ProductErrorCodeInvalid                           ProductErrorCode = "INVALID"
+	ProductErrorCodeNotFound                          ProductErrorCode = "NOT_FOUND"
+	ProductErrorCodeRequired                          ProductErrorCode = "REQUIRED"
+	ProductErrorCodeUnique                            ProductErrorCode = "UNIQUE"
+	ProductErrorCodeCannotManageProductWithoutVariant ProductErrorCode = "CANNOT_MANAGE_PRODUCT_WITHOUT_VARIANT"
+)
+
+var AllProductErrorCode = []ProductErrorCode{
+	ProductErrorCodeDuplicatedInputItem,
+	ProductErrorCodeGraphqlError,
+	ProductErrorCodeImageUploadError,
+	ProductErrorCodeInvalid,
+	ProductErrorCodeNotFound,
+	ProductErrorCodeRequired,
+	ProductErrorCodeUnique,
+	ProductErrorCodeCannotManageProductWithoutVariant,
+}
+
+func (e ProductErrorCode) IsValid() bool {
+	switch e {
+	case ProductErrorCodeDuplicatedInputItem, ProductErrorCodeGraphqlError, ProductErrorCodeImageUploadError, ProductErrorCodeInvalid, ProductErrorCodeNotFound, ProductErrorCodeRequired, ProductErrorCodeUnique, ProductErrorCodeCannotManageProductWithoutVariant:
+		return true
+	}
+	return false
+}
+
+func (e ProductErrorCode) String() string {
+	return string(e)
+}
+
+func (e *ProductErrorCode) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ProductErrorCode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ProductErrorCode", str)
+	}
+	return nil
+}
+
+func (e ProductErrorCode) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

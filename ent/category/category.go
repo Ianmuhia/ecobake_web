@@ -21,8 +21,17 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// FieldIcon holds the string denoting the icon field in the database.
 	FieldIcon = "icon"
+	// EdgeProduct holds the string denoting the product edge name in mutations.
+	EdgeProduct = "product"
 	// Table holds the table name of the category in the database.
 	Table = "categories"
+	// ProductTable is the table that holds the product relation/edge.
+	ProductTable = "products"
+	// ProductInverseTable is the table name for the Product entity.
+	// It exists in this package in order to avoid circular dependency with the "product" package.
+	ProductInverseTable = "products"
+	// ProductColumn is the table column denoting the product relation/edge.
+	ProductColumn = "category_product"
 )
 
 // Columns holds all SQL columns for category fields.

@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/product"
 	"errors"
 	"fmt"
 	"time"
@@ -46,9 +47,25 @@ func (cc *CategoryCreate) SetUpdatedAt(t time.Time) *CategoryCreate {
 	return cc
 }
 
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (cc *CategoryCreate) SetNillableUpdatedAt(t *time.Time) *CategoryCreate {
+	if t != nil {
+		cc.SetUpdatedAt(*t)
+	}
+	return cc
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (cc *CategoryCreate) SetDeletedAt(t time.Time) *CategoryCreate {
 	cc.mutation.SetDeletedAt(t)
+	return cc
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (cc *CategoryCreate) SetNillableDeletedAt(t *time.Time) *CategoryCreate {
+	if t != nil {
+		cc.SetDeletedAt(*t)
+	}
 	return cc
 }
 
@@ -56,6 +73,21 @@ func (cc *CategoryCreate) SetDeletedAt(t time.Time) *CategoryCreate {
 func (cc *CategoryCreate) SetIcon(s string) *CategoryCreate {
 	cc.mutation.SetIcon(s)
 	return cc
+}
+
+// AddProductIDs adds the "product" edge to the Product entity by IDs.
+func (cc *CategoryCreate) AddProductIDs(ids ...int) *CategoryCreate {
+	cc.mutation.AddProductIDs(ids...)
+	return cc
+}
+
+// AddProduct adds the "product" edges to the Product entity.
+func (cc *CategoryCreate) AddProduct(p ...*Product) *CategoryCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return cc.AddProductIDs(ids...)
 }
 
 // Mutation returns the CategoryMutation object of the builder.
@@ -154,12 +186,6 @@ func (cc *CategoryCreate) check() error {
 	if _, ok := cc.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Category.created_at"`)}
 	}
-	if _, ok := cc.mutation.UpdatedAt(); !ok {
-		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "Category.updated_at"`)}
-	}
-	if _, ok := cc.mutation.DeletedAt(); !ok {
-		return &ValidationError{Name: "deleted_at", err: errors.New(`ent: missing required field "Category.deleted_at"`)}
-	}
 	if _, ok := cc.mutation.Icon(); !ok {
 		return &ValidationError{Name: "icon", err: errors.New(`ent: missing required field "Category.icon"`)}
 	}
@@ -234,6 +260,25 @@ func (cc *CategoryCreate) createSpec() (*Category, *sqlgraph.CreateSpec) {
 			Column: category.FieldIcon,
 		})
 		_node.Icon = value
+	}
+	if nodes := cc.mutation.ProductIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

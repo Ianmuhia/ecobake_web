@@ -6,6 +6,7 @@ import (
 	"context"
 	"ecobake/ent/category"
 	"ecobake/ent/predicate"
+	"ecobake/ent/product"
 	"errors"
 	"fmt"
 	"time"
@@ -54,9 +55,37 @@ func (cu *CategoryUpdate) SetUpdatedAt(t time.Time) *CategoryUpdate {
 	return cu
 }
 
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (cu *CategoryUpdate) SetNillableUpdatedAt(t *time.Time) *CategoryUpdate {
+	if t != nil {
+		cu.SetUpdatedAt(*t)
+	}
+	return cu
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (cu *CategoryUpdate) ClearUpdatedAt() *CategoryUpdate {
+	cu.mutation.ClearUpdatedAt()
+	return cu
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (cu *CategoryUpdate) SetDeletedAt(t time.Time) *CategoryUpdate {
 	cu.mutation.SetDeletedAt(t)
+	return cu
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (cu *CategoryUpdate) SetNillableDeletedAt(t *time.Time) *CategoryUpdate {
+	if t != nil {
+		cu.SetDeletedAt(*t)
+	}
+	return cu
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (cu *CategoryUpdate) ClearDeletedAt() *CategoryUpdate {
+	cu.mutation.ClearDeletedAt()
 	return cu
 }
 
@@ -66,9 +95,45 @@ func (cu *CategoryUpdate) SetIcon(s string) *CategoryUpdate {
 	return cu
 }
 
+// AddProductIDs adds the "product" edge to the Product entity by IDs.
+func (cu *CategoryUpdate) AddProductIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.AddProductIDs(ids...)
+	return cu
+}
+
+// AddProduct adds the "product" edges to the Product entity.
+func (cu *CategoryUpdate) AddProduct(p ...*Product) *CategoryUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return cu.AddProductIDs(ids...)
+}
+
 // Mutation returns the CategoryMutation object of the builder.
 func (cu *CategoryUpdate) Mutation() *CategoryMutation {
 	return cu.mutation
+}
+
+// ClearProduct clears all "product" edges to the Product entity.
+func (cu *CategoryUpdate) ClearProduct() *CategoryUpdate {
+	cu.mutation.ClearProduct()
+	return cu
+}
+
+// RemoveProductIDs removes the "product" edge to Product entities by IDs.
+func (cu *CategoryUpdate) RemoveProductIDs(ids ...int) *CategoryUpdate {
+	cu.mutation.RemoveProductIDs(ids...)
+	return cu
+}
+
+// RemoveProduct removes "product" edges to Product entities.
+func (cu *CategoryUpdate) RemoveProduct(p ...*Product) *CategoryUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return cu.RemoveProductIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -185,10 +250,22 @@ func (cu *CategoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: category.FieldUpdatedAt,
 		})
 	}
+	if cu.mutation.UpdatedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: category.FieldUpdatedAt,
+		})
+	}
 	if value, ok := cu.mutation.DeletedAt(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
 			Value:  value,
+			Column: category.FieldDeletedAt,
+		})
+	}
+	if cu.mutation.DeletedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
 			Column: category.FieldDeletedAt,
 		})
 	}
@@ -198,6 +275,60 @@ func (cu *CategoryUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Value:  value,
 			Column: category.FieldIcon,
 		})
+	}
+	if cu.mutation.ProductCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.RemovedProductIDs(); len(nodes) > 0 && !cu.mutation.ProductCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cu.mutation.ProductIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, cu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -244,9 +375,37 @@ func (cuo *CategoryUpdateOne) SetUpdatedAt(t time.Time) *CategoryUpdateOne {
 	return cuo
 }
 
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (cuo *CategoryUpdateOne) SetNillableUpdatedAt(t *time.Time) *CategoryUpdateOne {
+	if t != nil {
+		cuo.SetUpdatedAt(*t)
+	}
+	return cuo
+}
+
+// ClearUpdatedAt clears the value of the "updated_at" field.
+func (cuo *CategoryUpdateOne) ClearUpdatedAt() *CategoryUpdateOne {
+	cuo.mutation.ClearUpdatedAt()
+	return cuo
+}
+
 // SetDeletedAt sets the "deleted_at" field.
 func (cuo *CategoryUpdateOne) SetDeletedAt(t time.Time) *CategoryUpdateOne {
 	cuo.mutation.SetDeletedAt(t)
+	return cuo
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (cuo *CategoryUpdateOne) SetNillableDeletedAt(t *time.Time) *CategoryUpdateOne {
+	if t != nil {
+		cuo.SetDeletedAt(*t)
+	}
+	return cuo
+}
+
+// ClearDeletedAt clears the value of the "deleted_at" field.
+func (cuo *CategoryUpdateOne) ClearDeletedAt() *CategoryUpdateOne {
+	cuo.mutation.ClearDeletedAt()
 	return cuo
 }
 
@@ -256,9 +415,45 @@ func (cuo *CategoryUpdateOne) SetIcon(s string) *CategoryUpdateOne {
 	return cuo
 }
 
+// AddProductIDs adds the "product" edge to the Product entity by IDs.
+func (cuo *CategoryUpdateOne) AddProductIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.AddProductIDs(ids...)
+	return cuo
+}
+
+// AddProduct adds the "product" edges to the Product entity.
+func (cuo *CategoryUpdateOne) AddProduct(p ...*Product) *CategoryUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return cuo.AddProductIDs(ids...)
+}
+
 // Mutation returns the CategoryMutation object of the builder.
 func (cuo *CategoryUpdateOne) Mutation() *CategoryMutation {
 	return cuo.mutation
+}
+
+// ClearProduct clears all "product" edges to the Product entity.
+func (cuo *CategoryUpdateOne) ClearProduct() *CategoryUpdateOne {
+	cuo.mutation.ClearProduct()
+	return cuo
+}
+
+// RemoveProductIDs removes the "product" edge to Product entities by IDs.
+func (cuo *CategoryUpdateOne) RemoveProductIDs(ids ...int) *CategoryUpdateOne {
+	cuo.mutation.RemoveProductIDs(ids...)
+	return cuo
+}
+
+// RemoveProduct removes "product" edges to Product entities.
+func (cuo *CategoryUpdateOne) RemoveProduct(p ...*Product) *CategoryUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return cuo.RemoveProductIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -405,10 +600,22 @@ func (cuo *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err
 			Column: category.FieldUpdatedAt,
 		})
 	}
+	if cuo.mutation.UpdatedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Column: category.FieldUpdatedAt,
+		})
+	}
 	if value, ok := cuo.mutation.DeletedAt(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeTime,
 			Value:  value,
+			Column: category.FieldDeletedAt,
+		})
+	}
+	if cuo.mutation.DeletedAtCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
 			Column: category.FieldDeletedAt,
 		})
 	}
@@ -418,6 +625,60 @@ func (cuo *CategoryUpdateOne) sqlSave(ctx context.Context) (_node *Category, err
 			Value:  value,
 			Column: category.FieldIcon,
 		})
+	}
+	if cuo.mutation.ProductCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.RemovedProductIDs(); len(nodes) > 0 && !cuo.mutation.ProductCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := cuo.mutation.ProductIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   category.ProductTable,
+			Columns: []string{category.ProductColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: product.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Category{config: cuo.config}
 	_spec.Assign = _node.assignValues

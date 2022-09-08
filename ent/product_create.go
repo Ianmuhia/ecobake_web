@@ -4,8 +4,11 @@ package ent
 
 import (
 	"context"
+	"ecobake/ent/category"
 	"ecobake/ent/product"
+	"errors"
 	"fmt"
+	"time"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -16,6 +19,111 @@ type ProductCreate struct {
 	config
 	mutation *ProductMutation
 	hooks    []Hook
+}
+
+// SetName sets the "name" field.
+func (pc *ProductCreate) SetName(s string) *ProductCreate {
+	pc.mutation.SetName(s)
+	return pc
+}
+
+// SetPrice sets the "price" field.
+func (pc *ProductCreate) SetPrice(s string) *ProductCreate {
+	pc.mutation.SetPrice(s)
+	return pc
+}
+
+// SetDescription sets the "description" field.
+func (pc *ProductCreate) SetDescription(s string) *ProductCreate {
+	pc.mutation.SetDescription(s)
+	return pc
+}
+
+// SetIngredients sets the "ingredients" field.
+func (pc *ProductCreate) SetIngredients(s string) *ProductCreate {
+	pc.mutation.SetIngredients(s)
+	return pc
+}
+
+// SetTotalRating sets the "totalRating" field.
+func (pc *ProductCreate) SetTotalRating(f float64) *ProductCreate {
+	pc.mutation.SetTotalRating(f)
+	return pc
+}
+
+// SetNillableTotalRating sets the "totalRating" field if the given value is not nil.
+func (pc *ProductCreate) SetNillableTotalRating(f *float64) *ProductCreate {
+	if f != nil {
+		pc.SetTotalRating(*f)
+	}
+	return pc
+}
+
+// SetImages sets the "images" field.
+func (pc *ProductCreate) SetImages(s []string) *ProductCreate {
+	pc.mutation.SetImages(s)
+	return pc
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (pc *ProductCreate) SetCreatedAt(t time.Time) *ProductCreate {
+	pc.mutation.SetCreatedAt(t)
+	return pc
+}
+
+// SetNillableCreatedAt sets the "created_at" field if the given value is not nil.
+func (pc *ProductCreate) SetNillableCreatedAt(t *time.Time) *ProductCreate {
+	if t != nil {
+		pc.SetCreatedAt(*t)
+	}
+	return pc
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (pc *ProductCreate) SetUpdatedAt(t time.Time) *ProductCreate {
+	pc.mutation.SetUpdatedAt(t)
+	return pc
+}
+
+// SetNillableUpdatedAt sets the "updated_at" field if the given value is not nil.
+func (pc *ProductCreate) SetNillableUpdatedAt(t *time.Time) *ProductCreate {
+	if t != nil {
+		pc.SetUpdatedAt(*t)
+	}
+	return pc
+}
+
+// SetDeletedAt sets the "deleted_at" field.
+func (pc *ProductCreate) SetDeletedAt(t time.Time) *ProductCreate {
+	pc.mutation.SetDeletedAt(t)
+	return pc
+}
+
+// SetNillableDeletedAt sets the "deleted_at" field if the given value is not nil.
+func (pc *ProductCreate) SetNillableDeletedAt(t *time.Time) *ProductCreate {
+	if t != nil {
+		pc.SetDeletedAt(*t)
+	}
+	return pc
+}
+
+// SetCategoryID sets the "category" edge to the Category entity by ID.
+func (pc *ProductCreate) SetCategoryID(id int) *ProductCreate {
+	pc.mutation.SetCategoryID(id)
+	return pc
+}
+
+// SetNillableCategoryID sets the "category" edge to the Category entity by ID if the given value is not nil.
+func (pc *ProductCreate) SetNillableCategoryID(id *int) *ProductCreate {
+	if id != nil {
+		pc = pc.SetCategoryID(*id)
+	}
+	return pc
+}
+
+// SetCategory sets the "category" edge to the Category entity.
+func (pc *ProductCreate) SetCategory(c *Category) *ProductCreate {
+	return pc.SetCategoryID(c.ID)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -29,6 +137,7 @@ func (pc *ProductCreate) Save(ctx context.Context) (*Product, error) {
 		err  error
 		node *Product
 	)
+	pc.defaults()
 	if len(pc.hooks) == 0 {
 		if err = pc.check(); err != nil {
 			return nil, err
@@ -92,8 +201,65 @@ func (pc *ProductCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (pc *ProductCreate) defaults() {
+	if _, ok := pc.mutation.TotalRating(); !ok {
+		v := product.DefaultTotalRating
+		pc.mutation.SetTotalRating(v)
+	}
+	if _, ok := pc.mutation.Images(); !ok {
+		v := product.DefaultImages
+		pc.mutation.SetImages(v)
+	}
+	if _, ok := pc.mutation.CreatedAt(); !ok {
+		v := product.DefaultCreatedAt
+		pc.mutation.SetCreatedAt(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (pc *ProductCreate) check() error {
+	if _, ok := pc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Product.name"`)}
+	}
+	if v, ok := pc.mutation.Name(); ok {
+		if err := product.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Product.name": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.Price(); !ok {
+		return &ValidationError{Name: "price", err: errors.New(`ent: missing required field "Product.price"`)}
+	}
+	if v, ok := pc.mutation.Price(); ok {
+		if err := product.PriceValidator(v); err != nil {
+			return &ValidationError{Name: "price", err: fmt.Errorf(`ent: validator failed for field "Product.price": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.Description(); !ok {
+		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Product.description"`)}
+	}
+	if v, ok := pc.mutation.Description(); ok {
+		if err := product.DescriptionValidator(v); err != nil {
+			return &ValidationError{Name: "description", err: fmt.Errorf(`ent: validator failed for field "Product.description": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.Ingredients(); !ok {
+		return &ValidationError{Name: "ingredients", err: errors.New(`ent: missing required field "Product.ingredients"`)}
+	}
+	if v, ok := pc.mutation.Ingredients(); ok {
+		if err := product.IngredientsValidator(v); err != nil {
+			return &ValidationError{Name: "ingredients", err: fmt.Errorf(`ent: validator failed for field "Product.ingredients": %w`, err)}
+		}
+	}
+	if _, ok := pc.mutation.TotalRating(); !ok {
+		return &ValidationError{Name: "totalRating", err: errors.New(`ent: missing required field "Product.totalRating"`)}
+	}
+	if _, ok := pc.mutation.Images(); !ok {
+		return &ValidationError{Name: "images", err: errors.New(`ent: missing required field "Product.images"`)}
+	}
+	if _, ok := pc.mutation.CreatedAt(); !ok {
+		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Product.created_at"`)}
+	}
 	return nil
 }
 
@@ -121,6 +287,98 @@ func (pc *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 			},
 		}
 	)
+	if value, ok := pc.mutation.Name(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldName,
+		})
+		_node.Name = value
+	}
+	if value, ok := pc.mutation.Price(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldPrice,
+		})
+		_node.Price = value
+	}
+	if value, ok := pc.mutation.Description(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldDescription,
+		})
+		_node.Description = value
+	}
+	if value, ok := pc.mutation.Ingredients(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: product.FieldIngredients,
+		})
+		_node.Ingredients = value
+	}
+	if value, ok := pc.mutation.TotalRating(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeFloat64,
+			Value:  value,
+			Column: product.FieldTotalRating,
+		})
+		_node.TotalRating = value
+	}
+	if value, ok := pc.mutation.Images(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: product.FieldImages,
+		})
+		_node.Images = value
+	}
+	if value, ok := pc.mutation.CreatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldCreatedAt,
+		})
+		_node.CreatedAt = value
+	}
+	if value, ok := pc.mutation.UpdatedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldUpdatedAt,
+		})
+		_node.UpdatedAt = value
+	}
+	if value, ok := pc.mutation.DeletedAt(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: product.FieldDeletedAt,
+		})
+		_node.DeletedAt = value
+	}
+	if nodes := pc.mutation.CategoryIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   product.CategoryTable,
+			Columns: []string{product.CategoryColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: category.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.category_product = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -138,6 +396,7 @@ func (pcb *ProductCreateBulk) Save(ctx context.Context) ([]*Product, error) {
 	for i := range pcb.builders {
 		func(i int, root context.Context) {
 			builder := pcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*ProductMutation)
 				if !ok {

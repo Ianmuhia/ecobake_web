@@ -20,7 +20,6 @@ require (
 	github.com/minio/minio-go/v7 v7.0.34
 	github.com/nats-io/nats.go v1.16.0
 	github.com/pkg/errors v0.9.1
-	github.com/rs/cors v1.8.2
 	github.com/vektah/gqlparser/v2 v2.4.8
 	github.com/vmihailenco/msgpack/v5 v5.0.0-beta.9
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa

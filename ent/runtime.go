@@ -4,6 +4,7 @@ package ent
 
 import (
 	"ecobake/ent/category"
+	"ecobake/ent/product"
 	"ecobake/ent/schema"
 	"ecobake/ent/user"
 	"time"
@@ -27,6 +28,36 @@ func init() {
 	categoryDescIcon := categoryFields[4].Descriptor()
 	// category.IconValidator is a validator for the "icon" field. It is called by the builders before save.
 	category.IconValidator = categoryDescIcon.Validators[0].(func(string) error)
+	productFields := schema.Product{}.Fields()
+	_ = productFields
+	// productDescName is the schema descriptor for name field.
+	productDescName := productFields[0].Descriptor()
+	// product.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	product.NameValidator = productDescName.Validators[0].(func(string) error)
+	// productDescPrice is the schema descriptor for price field.
+	productDescPrice := productFields[1].Descriptor()
+	// product.PriceValidator is a validator for the "price" field. It is called by the builders before save.
+	product.PriceValidator = productDescPrice.Validators[0].(func(string) error)
+	// productDescDescription is the schema descriptor for description field.
+	productDescDescription := productFields[2].Descriptor()
+	// product.DescriptionValidator is a validator for the "description" field. It is called by the builders before save.
+	product.DescriptionValidator = productDescDescription.Validators[0].(func(string) error)
+	// productDescIngredients is the schema descriptor for ingredients field.
+	productDescIngredients := productFields[3].Descriptor()
+	// product.IngredientsValidator is a validator for the "ingredients" field. It is called by the builders before save.
+	product.IngredientsValidator = productDescIngredients.Validators[0].(func(string) error)
+	// productDescTotalRating is the schema descriptor for totalRating field.
+	productDescTotalRating := productFields[4].Descriptor()
+	// product.DefaultTotalRating holds the default value on creation for the totalRating field.
+	product.DefaultTotalRating = productDescTotalRating.Default.(float64)
+	// productDescImages is the schema descriptor for images field.
+	productDescImages := productFields[5].Descriptor()
+	// product.DefaultImages holds the default value on creation for the images field.
+	product.DefaultImages = productDescImages.Default.([]string)
+	// productDescCreatedAt is the schema descriptor for created_at field.
+	productDescCreatedAt := productFields[6].Descriptor()
+	// product.DefaultCreatedAt holds the default value on creation for the created_at field.
+	product.DefaultCreatedAt = productDescCreatedAt.Default.(time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
