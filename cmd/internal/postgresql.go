@@ -71,7 +71,7 @@ func EntConn(cfg config.PostgresConn) (*ent.Client, error) {
 	dsn := url.URL{
 		Scheme: "postgres",
 		User:   url.UserPassword(cfg.DBUser, cfg.DBPass),
-		Host:   fmt.Sprintf("%s:%v", cfg.URL, cfg.Port),
+		Host:   fmt.Sprintf("%s:%s", cfg.URL, cfg.Port),
 		Path:   cfg.DBName,
 	}
 
