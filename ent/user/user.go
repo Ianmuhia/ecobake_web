@@ -33,8 +33,17 @@ const (
 	FieldProfileImage = "profile_image"
 	// FieldEmail holds the string denoting the email field in the database.
 	FieldEmail = "email"
+	// EdgeFavourites holds the string denoting the favourites edge name in mutations.
+	EdgeFavourites = "favourites"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// FavouritesTable is the table that holds the favourites relation/edge.
+	FavouritesTable = "favourites"
+	// FavouritesInverseTable is the table name for the Favourites entity.
+	// It exists in this package in order to avoid circular dependency with the "favourites" package.
+	FavouritesInverseTable = "favourites"
+	// FavouritesColumn is the table column denoting the favourites relation/edge.
+	FavouritesColumn = "user_favourites"
 )
 
 // Columns holds all SQL columns for user fields.

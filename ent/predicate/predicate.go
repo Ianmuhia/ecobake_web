@@ -13,6 +13,9 @@ import (
 // Category is the predicate function for category builders.
 type Category func(*sql.Selector)
 
+// Favourites is the predicate function for favourites builders.
+type Favourites func(*sql.Selector)
+
 // Product is the predicate function for product builders.
 type Product func(*sql.Selector)
 

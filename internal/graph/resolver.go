@@ -2,6 +2,7 @@ package graph
 
 import (
 	"ecobake/ent"
+	"ecobake/internal/models"
 	"ecobake/internal/services"
 )
 
@@ -11,6 +12,7 @@ import (
 
 type Resolver struct {
 	Client          *ent.Client
+	UserChan        chan models.User
 	StorageService  services.FileStorageService
 	NatService      services.NatsService
 	UserService     services.UsersService
@@ -20,6 +22,7 @@ type Resolver struct {
 }
 
 func NewResolver(
+	userChan chan models.User,
 	client *ent.Client,
 	storageService services.FileStorageService,
 	natService services.NatsService,
@@ -30,6 +33,7 @@ func NewResolver(
 
 ) *Resolver {
 	return &Resolver{
+		UserChan:        userChan,
 		Client:          client,
 		StorageService:  storageService,
 		NatService:      natService,

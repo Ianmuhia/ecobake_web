@@ -38,6 +38,27 @@ type User struct {
 	ProfileImage string `json:"profile_image,omitempty"`
 	// Email holds the value of the "email" field.
 	Email string `json:"email,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges UserEdges `json:"edges"`
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Favourites holds the value of the favourites edge.
+	Favourites []*Favourites `json:"favourites,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// FavouritesOrErr returns the Favourites value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) FavouritesOrErr() ([]*Favourites, error) {
+	if e.loadedTypes[0] {
+		return e.Favourites, nil
+	}
+	return nil, &NotLoadedError{edge: "favourites"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -131,6 +152,11 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 		}
 	}
 	return nil
+}
+
+// QueryFavourites queries the "favourites" edge of the User entity.
+func (u *User) QueryFavourites() *FavouritesQuery {
+	return (&UserClient{config: u.config}).QueryFavourites(u)
 }
 
 // Update returns a builder for updating this User.

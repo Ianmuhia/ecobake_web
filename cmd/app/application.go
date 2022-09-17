@@ -10,6 +10,7 @@ import (
 	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
 	"ecobake/internal/services"
+	"flag"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
@@ -76,7 +77,9 @@ type secrets struct {
 
 func initConfig(logger *log.Logger) (Config, error) {
 	var conf Config
-	if _, err := toml.DecodeFile("config.toml", &conf); err != nil {
+	wordPtr := flag.String("c", ".", "config file location")
+	flag.Parse()
+	if _, err := toml.DecodeFile(*wordPtr, &conf); err != nil {
 		logger.Println(err)
 		return conf, err
 	}
@@ -214,7 +217,9 @@ func Run(
 ) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	userChan := make(chan models.User)
 	resolver := graph.NewResolver(
+		userChan,
 		client,
 		storageService,
 		natsService,

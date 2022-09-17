@@ -27,6 +27,35 @@ var (
 		Columns:    CategoriesColumns,
 		PrimaryKey: []*schema.Column{CategoriesColumns[0]},
 	}
+	// FavouritesColumns holds the columns for the "favourites" table.
+	FavouritesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
+		{Name: "deleted_at", Type: field.TypeTime, Nullable: true},
+		{Name: "product_favourites", Type: field.TypeInt, Unique: true, Nullable: true},
+		{Name: "user_favourites", Type: field.TypeInt, Nullable: true},
+	}
+	// FavouritesTable holds the schema information for the "favourites" table.
+	FavouritesTable = &schema.Table{
+		Name:       "favourites",
+		Columns:    FavouritesColumns,
+		PrimaryKey: []*schema.Column{FavouritesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "favourites_products_favourites",
+				Columns:    []*schema.Column{FavouritesColumns[4]},
+				RefColumns: []*schema.Column{ProductsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "favourites_users_favourites",
+				Columns:    []*schema.Column{FavouritesColumns[5]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// ProductsColumns holds the columns for the "products" table.
 	ProductsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -84,11 +113,14 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		CategoriesTable,
+		FavouritesTable,
 		ProductsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	FavouritesTable.ForeignKeys[0].RefTable = ProductsTable
+	FavouritesTable.ForeignKeys[1].RefTable = UsersTable
 	ProductsTable.ForeignKeys[0].RefTable = CategoriesTable
 }

@@ -8,6 +8,7 @@ package ent
 
 import (
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/product"
 	"encoding/json"
 	"fmt"
@@ -50,9 +51,11 @@ type Product struct {
 type ProductEdges struct {
 	// Category holds the value of the category edge.
 	Category *Category `json:"category,omitempty"`
+	// Favourites holds the value of the favourites edge.
+	Favourites *Favourites `json:"favourites,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // CategoryOrErr returns the Category value or an error if the edge
@@ -66,6 +69,19 @@ func (e ProductEdges) CategoryOrErr() (*Category, error) {
 		return e.Category, nil
 	}
 	return nil, &NotLoadedError{edge: "category"}
+}
+
+// FavouritesOrErr returns the Favourites value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e ProductEdges) FavouritesOrErr() (*Favourites, error) {
+	if e.loadedTypes[1] {
+		if e.Favourites == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: favourites.Label}
+		}
+		return e.Favourites, nil
+	}
+	return nil, &NotLoadedError{edge: "favourites"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -177,6 +193,11 @@ func (pr *Product) assignValues(columns []string, values []interface{}) error {
 // QueryCategory queries the "category" edge of the Product entity.
 func (pr *Product) QueryCategory() *CategoryQuery {
 	return (&ProductClient{config: pr.config}).QueryCategory(pr)
+}
+
+// QueryFavourites queries the "favourites" edge of the Product entity.
+func (pr *Product) QueryFavourites() *FavouritesQuery {
+	return (&ProductClient{config: pr.config}).QueryFavourites(pr)
 }
 
 // Update returns a builder for updating this Product.

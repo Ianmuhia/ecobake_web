@@ -9,6 +9,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/predicate"
 	"ecobake/ent/product"
 	"errors"
@@ -157,6 +158,25 @@ func (pu *ProductUpdate) SetCategory(c *Category) *ProductUpdate {
 	return pu.SetCategoryID(c.ID)
 }
 
+// SetFavouritesID sets the "favourites" edge to the Favourites entity by ID.
+func (pu *ProductUpdate) SetFavouritesID(id int) *ProductUpdate {
+	pu.mutation.SetFavouritesID(id)
+	return pu
+}
+
+// SetNillableFavouritesID sets the "favourites" edge to the Favourites entity by ID if the given value is not nil.
+func (pu *ProductUpdate) SetNillableFavouritesID(id *int) *ProductUpdate {
+	if id != nil {
+		pu = pu.SetFavouritesID(*id)
+	}
+	return pu
+}
+
+// SetFavourites sets the "favourites" edge to the Favourites entity.
+func (pu *ProductUpdate) SetFavourites(f *Favourites) *ProductUpdate {
+	return pu.SetFavouritesID(f.ID)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (pu *ProductUpdate) Mutation() *ProductMutation {
 	return pu.mutation
@@ -165,6 +185,12 @@ func (pu *ProductUpdate) Mutation() *ProductMutation {
 // ClearCategory clears the "category" edge to the Category entity.
 func (pu *ProductUpdate) ClearCategory() *ProductUpdate {
 	pu.mutation.ClearCategory()
+	return pu
+}
+
+// ClearFavourites clears the "favourites" edge to the Favourites entity.
+func (pu *ProductUpdate) ClearFavourites() *ProductUpdate {
+	pu.mutation.ClearFavourites()
 	return pu
 }
 
@@ -388,6 +414,41 @@ func (pu *ProductUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if pu.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   product.FavouritesTable,
+			Columns: []string{product.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   product.FavouritesTable,
+			Columns: []string{product.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{product.Label}
@@ -531,6 +592,25 @@ func (puo *ProductUpdateOne) SetCategory(c *Category) *ProductUpdateOne {
 	return puo.SetCategoryID(c.ID)
 }
 
+// SetFavouritesID sets the "favourites" edge to the Favourites entity by ID.
+func (puo *ProductUpdateOne) SetFavouritesID(id int) *ProductUpdateOne {
+	puo.mutation.SetFavouritesID(id)
+	return puo
+}
+
+// SetNillableFavouritesID sets the "favourites" edge to the Favourites entity by ID if the given value is not nil.
+func (puo *ProductUpdateOne) SetNillableFavouritesID(id *int) *ProductUpdateOne {
+	if id != nil {
+		puo = puo.SetFavouritesID(*id)
+	}
+	return puo
+}
+
+// SetFavourites sets the "favourites" edge to the Favourites entity.
+func (puo *ProductUpdateOne) SetFavourites(f *Favourites) *ProductUpdateOne {
+	return puo.SetFavouritesID(f.ID)
+}
+
 // Mutation returns the ProductMutation object of the builder.
 func (puo *ProductUpdateOne) Mutation() *ProductMutation {
 	return puo.mutation
@@ -539,6 +619,12 @@ func (puo *ProductUpdateOne) Mutation() *ProductMutation {
 // ClearCategory clears the "category" edge to the Category entity.
 func (puo *ProductUpdateOne) ClearCategory() *ProductUpdateOne {
 	puo.mutation.ClearCategory()
+	return puo
+}
+
+// ClearFavourites clears the "favourites" edge to the Favourites entity.
+func (puo *ProductUpdateOne) ClearFavourites() *ProductUpdateOne {
+	puo.mutation.ClearFavourites()
 	return puo
 }
 
@@ -784,6 +870,41 @@ func (puo *ProductUpdateOne) sqlSave(ctx context.Context) (_node *Product, err e
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: category.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   product.FavouritesTable,
+			Columns: []string{product.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   product.FavouritesTable,
+			Columns: []string{product.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
 				},
 			},
 		}

@@ -8,6 +8,9 @@ import (
 	"context"
 	"ecobake/ent"
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
+	"ecobake/ent/product"
+	"ecobake/ent/user"
 	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
 	"ecobake/internal/services"
@@ -19,7 +22,6 @@ import (
 	"time"
 
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -55,6 +57,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input models.NewUser)
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, input models.CreateCategory) (*models.Category, error) {
 	data, err := r.Client.Category.Create().SetIcon(input.Icon).SetName(input.Name).Save(ctx)
+
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +157,116 @@ func (r *mutationResolver) CreateProduct(ctx context.Context, input *models.NewP
 	}, nil
 }
 
+// UpdateProduct is the resolver for the updateProduct field.
+func (r *mutationResolver) UpdateProduct(ctx context.Context, input *models.UpdateProduct) (*models.ProductCreateResponse, error) {
+	data, err := r.Client.Product.UpdateOneID(input.ID).
+		SetCreatedAt(time.Now()).SetName(input.Name).
+		SetDescription(input.Description).
+		SetIngredients(input.Ingredients).
+		SetCategoryID(input.Category).
+		SetPrice(input.Price).
+		Save(ctx)
+
+	if err != nil {
+		if ent.IsConstraintError(err) {
+			return &models.ProductCreateResponse{
+				Errors: []models.ProductErrorCode{
+					models.ProductErrorCodeDuplicatedInputItem,
+				},
+				Product: models.Product{},
+			}, nil
+		}
+		return &models.ProductCreateResponse{
+			Errors: []models.ProductErrorCode{
+				models.ProductErrorCodeGraphqlError,
+			},
+			Product: models.Product{},
+		}, nil
+
+	}
+
+	upload, err := r.StorageService.ProductMultipleFileUpload(input.Images, data.ID)
+	if err != nil {
+		return &models.ProductCreateResponse{
+			Errors: []models.ProductErrorCode{
+				models.ProductErrorCodeImageUploadError,
+			},
+			Product: models.Product{},
+		}, nil
+	}
+	_, err = r.Client.Product.Update().SetImages(upload).Save(ctx)
+	if err != nil {
+		return &models.ProductCreateResponse{
+			Errors: []models.ProductErrorCode{
+				models.ProductErrorCodeGraphqlError,
+			},
+			Product: models.Product{},
+		}, nil
+	}
+	return &models.ProductCreateResponse{
+		Errors: nil,
+		Product: models.Product{
+			ID:          data.ID,
+			Name:        data.Name,
+			Price:       data.Price,
+			Description: data.Description,
+			Ingredients: data.Ingredients,
+			TotalRating: data.TotalRating,
+			Images:      nil,
+			CreatedAt:   data.CreatedAt.String(),
+		},
+	}, nil
+}
+
+// DeleteProduct is the resolver for the deleteProduct field.
+func (r *mutationResolver) DeleteProduct(ctx context.Context, input int) (bool, error) {
+	err := r.Client.Product.DeleteOneID(input).Exec(ctx)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+// DeleteFavourite is the resolver for the deleteFavourite field.
+func (r *mutationResolver) DeleteFavourite(ctx context.Context, input int) (bool, error) {
+	err := r.Client.Favourites.DeleteOneID(input).Exec(ctx)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
+}
+
+// AddFavourite is the resolver for the addFavourite field.
+func (r *mutationResolver) AddFavourite(ctx context.Context, input int) (*models.ProductResponse, error) {
+	data, err := r.Client.Product.Get(ctx, input)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.ProductResponse{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return &models.ProductResponse{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	_, err = r.Client.Favourites.Create().SetCreatedAt(time.Now()).SetProductID(data.ID).SetUserID(1).Save(ctx)
+	if err != nil {
+		if ent.IsConstraintError(err) || ent.IsValidationError(err) {
+			return &models.ProductResponse{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+			}, nil
+		}
+		return &models.ProductResponse{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	return nil, nil
+}
+
 // TokenCreate is the resolver for the tokenCreate field.
 func (r *mutationResolver) TokenCreate(ctx context.Context, email string, password string) (*models.CreateToken, error) {
 	user, err := r.UserService.GetUserByEmail(ctx, email)
@@ -168,8 +281,8 @@ func (r *mutationResolver) TokenCreate(ctx context.Context, email string, passwo
 			},
 		}, nil
 	}
-	//m := models.User{PasswordHash: user.PasswordHash}
-	ok := r.CheckPasswordHash(password, user.Password)
+
+	ok := randomcode.CheckPasswordHash(password, user.Password)
 	if !ok {
 		return &models.CreateToken{
 			Errors: []*models.AccountError{
@@ -404,7 +517,7 @@ func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword strin
 	}
 	u, err := r.UserService.GetUserByID(ctx, payload.ID)
 
-	ok := r.CheckPasswordHash(oldPassword, u.Password)
+	ok := randomcode.CheckPasswordHash(oldPassword, u.Password)
 	if !ok {
 		return &models.PasswordChange{
 			User: nil,
@@ -577,9 +690,154 @@ func (r *queryResolver) Categories(ctx context.Context) (*models.Categories, err
 	return &models.Categories{Categories: m}, nil
 }
 
+// Products is the resolver for the products field.
+func (r *queryResolver) Products(ctx context.Context) (*models.Products, error) {
+	data, err := r.Client.Product.Query().All(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.Products{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return &models.Products{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	pds := make([]*models.Product, len(data))
+
+	for i, v := range data {
+		pds[i] = &models.Product{
+			ID:          v.ID,
+			Name:        v.Name,
+			Price:       v.Price,
+			Description: v.Description,
+			Ingredients: v.Ingredients,
+			TotalRating: v.TotalRating,
+			Images:      v.Images,
+			CreatedAt:   v.CreatedAt.String(),
+		}
+	}
+
+	return &models.Products{
+		Products: pds,
+		Errors:   nil,
+	}, nil
+}
+
+// FavouriteProducts is the resolver for the favouriteProducts field.
+func (r *queryResolver) FavouriteProducts(ctx context.Context) (*models.Products, error) {
+	//TODO add actual user here
+	data, err := r.Client.Favourites.Query().Where(favourites.HasUserWith(user.ID(1))).QueryProduct().All(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.Products{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return &models.Products{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	pds := make([]*models.Product, len(data))
+
+	for i, v := range data {
+		pds[i] = &models.Product{
+			ID:          v.ID,
+			Name:        v.Name,
+			Price:       v.Price,
+			Description: v.Description,
+			Ingredients: v.Ingredients,
+			TotalRating: v.TotalRating,
+			Images:      v.Images,
+			CreatedAt:   v.CreatedAt.String(),
+		}
+	}
+
+	return &models.Products{
+		Products: pds,
+		Errors:   nil,
+	}, nil
+}
+
+// Product is the resolver for the product field.
+func (r *queryResolver) Product(ctx context.Context, input int) (*models.ProductResponse, error) {
+	v, err := r.Client.Product.Get(ctx, input)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.ProductResponse{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return &models.ProductResponse{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	return &models.ProductResponse{
+		Products: &models.Product{
+			ID:          v.ID,
+			Name:        v.Name,
+			Price:       v.Price,
+			Description: v.Description,
+			Ingredients: v.Ingredients,
+			TotalRating: v.TotalRating,
+			Images:      v.Images,
+			CreatedAt:   v.CreatedAt.String(),
+		},
+	}, nil
+}
+
+// ProductByCategory is the resolver for the productByCategory field.
+func (r *queryResolver) ProductByCategory(ctx context.Context, input int) (*models.Products, error) {
+	data, err := r.Client.Product.Query().Where(product.HasCategoryWith(category.ID(input))).All(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return &models.Products{
+				Products: nil,
+				Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeNotFound},
+			}, nil
+		}
+		return &models.Products{
+			Products: nil,
+			Errors:   []models.ListEntityErrorCode{models.ListEntityErrorCodeGraphqlError},
+		}, nil
+	}
+	pds := make([]*models.Product, len(data))
+
+	for i, v := range data {
+		pds[i] = &models.Product{
+			ID:          v.ID,
+			Name:        v.Name,
+			Price:       v.Price,
+			Description: v.Description,
+			Ingredients: v.Ingredients,
+			TotalRating: v.TotalRating,
+			Images:      v.Images,
+			CreatedAt:   v.CreatedAt.String(),
+		}
+	}
+
+	return &models.Products{
+		Products: pds,
+		Errors:   nil,
+	}, nil
+}
+
 // UserCreated is the resolver for the userCreated field.
 func (r *subscriptionResolver) UserCreated(ctx context.Context) (<-chan models.User, error) {
-	panic(fmt.Errorf("not implemented: UserCreated - userCreated"))
+	userChan := make(<-chan models.User)
+
+	go func() {
+		v := <-r.UserChan
+		log.Println(v)
+	}()
+
+	return userChan, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.
@@ -594,28 +852,3 @@ func (r *Resolver) Subscription() generated.SubscriptionResolver { return &subsc
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//     it when you're done.
-//   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func GinContextFromContext(ctx context.Context) (*gin.Context, error) {
-	ginContext := ctx.Value("GinContextKey")
-	if ginContext == nil {
-		err := fmt.Errorf("could not retrieve gin.Context")
-		return nil, err
-	}
-
-	gc, ok := ginContext.(*gin.Context)
-	if !ok {
-		err := fmt.Errorf("gin.Context has wrong type")
-		return nil, err
-	}
-	return gc, nil
-}
-func (r *mutationResolver) CheckPasswordHash(password, passwordHash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
-	return err == nil
-}

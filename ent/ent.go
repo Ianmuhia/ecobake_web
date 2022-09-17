@@ -9,6 +9,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/product"
 	"ecobake/ent/user"
 	"errors"
@@ -37,9 +38,10 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
-		category.Table: category.ValidColumn,
-		product.Table:  product.ValidColumn,
-		user.Table:     user.ValidColumn,
+		category.Table:   category.ValidColumn,
+		favourites.Table: favourites.ValidColumn,
+		product.Table:    product.ValidColumn,
+		user.Table:       user.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

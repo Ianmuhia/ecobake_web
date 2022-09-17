@@ -35,6 +35,8 @@ const (
 	FieldDeletedAt = "deleted_at"
 	// EdgeCategory holds the string denoting the category edge name in mutations.
 	EdgeCategory = "category"
+	// EdgeFavourites holds the string denoting the favourites edge name in mutations.
+	EdgeFavourites = "favourites"
 	// Table holds the table name of the product in the database.
 	Table = "products"
 	// CategoryTable is the table that holds the category relation/edge.
@@ -44,6 +46,13 @@ const (
 	CategoryInverseTable = "categories"
 	// CategoryColumn is the table column denoting the category relation/edge.
 	CategoryColumn = "category_product"
+	// FavouritesTable is the table that holds the favourites relation/edge.
+	FavouritesTable = "favourites"
+	// FavouritesInverseTable is the table name for the Favourites entity.
+	// It exists in this package in order to avoid circular dependency with the "favourites" package.
+	FavouritesInverseTable = "favourites"
+	// FavouritesColumn is the table column denoting the favourites relation/edge.
+	FavouritesColumn = "product_favourites"
 )
 
 // Columns holds all SQL columns for product fields.

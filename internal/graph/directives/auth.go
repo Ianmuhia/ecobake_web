@@ -2,14 +2,14 @@ package directives
 
 import (
 	"context"
-	"ecobake/internal/graph"
+	"ecobake/pkg/randomcode"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"log"
 )
 
 func Auth(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
-	gc, _ := graph.GinContextFromContext(ctx)
+	gc, _ := randomcode.GinContextFromContext(ctx)
 	log.Println(obj)
 	tokenData, _ := gc.Get("authorization_payload")
 	if tokenData == nil {

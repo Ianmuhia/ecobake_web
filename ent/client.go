@@ -15,6 +15,7 @@ import (
 	"ecobake/ent/migrate"
 
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/product"
 	"ecobake/ent/user"
 
@@ -30,6 +31,8 @@ type Client struct {
 	Schema *migrate.Schema
 	// Category is the client for interacting with the Category builders.
 	Category *CategoryClient
+	// Favourites is the client for interacting with the Favourites builders.
+	Favourites *FavouritesClient
 	// Product is the client for interacting with the Product builders.
 	Product *ProductClient
 	// User is the client for interacting with the User builders.
@@ -48,6 +51,7 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Category = NewCategoryClient(c.config)
+	c.Favourites = NewFavouritesClient(c.config)
 	c.Product = NewProductClient(c.config)
 	c.User = NewUserClient(c.config)
 }
@@ -81,11 +85,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Category: NewCategoryClient(cfg),
-		Product:  NewProductClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Category:   NewCategoryClient(cfg),
+		Favourites: NewFavouritesClient(cfg),
+		Product:    NewProductClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -103,11 +108,12 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Category: NewCategoryClient(cfg),
-		Product:  NewProductClient(cfg),
-		User:     NewUserClient(cfg),
+		ctx:        ctx,
+		config:     cfg,
+		Category:   NewCategoryClient(cfg),
+		Favourites: NewFavouritesClient(cfg),
+		Product:    NewProductClient(cfg),
+		User:       NewUserClient(cfg),
 	}, nil
 }
 
@@ -137,6 +143,7 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	c.Category.Use(hooks...)
+	c.Favourites.Use(hooks...)
 	c.Product.Use(hooks...)
 	c.User.Use(hooks...)
 }
@@ -247,6 +254,128 @@ func (c *CategoryClient) Hooks() []Hook {
 	return c.hooks.Category
 }
 
+// FavouritesClient is a client for the Favourites schema.
+type FavouritesClient struct {
+	config
+}
+
+// NewFavouritesClient returns a client for the Favourites from the given config.
+func NewFavouritesClient(c config) *FavouritesClient {
+	return &FavouritesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `favourites.Hooks(f(g(h())))`.
+func (c *FavouritesClient) Use(hooks ...Hook) {
+	c.hooks.Favourites = append(c.hooks.Favourites, hooks...)
+}
+
+// Create returns a builder for creating a Favourites entity.
+func (c *FavouritesClient) Create() *FavouritesCreate {
+	mutation := newFavouritesMutation(c.config, OpCreate)
+	return &FavouritesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Favourites entities.
+func (c *FavouritesClient) CreateBulk(builders ...*FavouritesCreate) *FavouritesCreateBulk {
+	return &FavouritesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Favourites.
+func (c *FavouritesClient) Update() *FavouritesUpdate {
+	mutation := newFavouritesMutation(c.config, OpUpdate)
+	return &FavouritesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FavouritesClient) UpdateOne(f *Favourites) *FavouritesUpdateOne {
+	mutation := newFavouritesMutation(c.config, OpUpdateOne, withFavourites(f))
+	return &FavouritesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FavouritesClient) UpdateOneID(id int) *FavouritesUpdateOne {
+	mutation := newFavouritesMutation(c.config, OpUpdateOne, withFavouritesID(id))
+	return &FavouritesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Favourites.
+func (c *FavouritesClient) Delete() *FavouritesDelete {
+	mutation := newFavouritesMutation(c.config, OpDelete)
+	return &FavouritesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FavouritesClient) DeleteOne(f *Favourites) *FavouritesDeleteOne {
+	return c.DeleteOneID(f.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *FavouritesClient) DeleteOneID(id int) *FavouritesDeleteOne {
+	builder := c.Delete().Where(favourites.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FavouritesDeleteOne{builder}
+}
+
+// Query returns a query builder for Favourites.
+func (c *FavouritesClient) Query() *FavouritesQuery {
+	return &FavouritesQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Favourites entity by its id.
+func (c *FavouritesClient) Get(ctx context.Context, id int) (*Favourites, error) {
+	return c.Query().Where(favourites.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FavouritesClient) GetX(ctx context.Context, id int) *Favourites {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProduct queries the product edge of a Favourites.
+func (c *FavouritesClient) QueryProduct(f *Favourites) *ProductQuery {
+	query := &ProductQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(favourites.Table, favourites.FieldID, id),
+			sqlgraph.To(product.Table, product.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, favourites.ProductTable, favourites.ProductColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryUser queries the user edge of a Favourites.
+func (c *FavouritesClient) QueryUser(f *Favourites) *UserQuery {
+	query := &UserQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(favourites.Table, favourites.FieldID, id),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, favourites.UserTable, favourites.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FavouritesClient) Hooks() []Hook {
+	return c.hooks.Favourites
+}
+
 // ProductClient is a client for the Product schema.
 type ProductClient struct {
 	config
@@ -348,6 +477,22 @@ func (c *ProductClient) QueryCategory(pr *Product) *CategoryQuery {
 	return query
 }
 
+// QueryFavourites queries the favourites edge of a Product.
+func (c *ProductClient) QueryFavourites(pr *Product) *FavouritesQuery {
+	query := &FavouritesQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := pr.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, id),
+			sqlgraph.To(favourites.Table, favourites.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, product.FavouritesTable, product.FavouritesColumn),
+		)
+		fromV = sqlgraph.Neighbors(pr.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *ProductClient) Hooks() []Hook {
 	return c.hooks.Product
@@ -436,6 +581,22 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryFavourites queries the favourites edge of a User.
+func (c *UserClient) QueryFavourites(u *User) *FavouritesQuery {
+	query := &FavouritesQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := u.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(user.Table, user.FieldID, id),
+			sqlgraph.To(favourites.Table, favourites.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, user.FavouritesTable, user.FavouritesColumn),
+		)
+		fromV = sqlgraph.Neighbors(u.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.

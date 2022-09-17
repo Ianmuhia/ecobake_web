@@ -25,6 +25,19 @@ func (f CategoryFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return f(ctx, mv)
 }
 
+// The FavouritesFunc type is an adapter to allow the use of ordinary
+// function as Favourites mutator.
+type FavouritesFunc func(context.Context, *ent.FavouritesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FavouritesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.FavouritesMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FavouritesMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The ProductFunc type is an adapter to allow the use of ordinary
 // function as Product mutator.
 type ProductFunc func(context.Context, *ent.ProductMutation) (ent.Value, error)

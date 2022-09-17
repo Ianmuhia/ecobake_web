@@ -8,6 +8,7 @@ package ent
 
 import (
 	"context"
+	"ecobake/ent/favourites"
 	"ecobake/ent/predicate"
 	"ecobake/ent/user"
 	"errors"
@@ -152,9 +153,45 @@ func (uu *UserUpdate) SetEmail(s string) *UserUpdate {
 	return uu
 }
 
+// AddFavouriteIDs adds the "favourites" edge to the Favourites entity by IDs.
+func (uu *UserUpdate) AddFavouriteIDs(ids ...int) *UserUpdate {
+	uu.mutation.AddFavouriteIDs(ids...)
+	return uu
+}
+
+// AddFavourites adds the "favourites" edges to the Favourites entity.
+func (uu *UserUpdate) AddFavourites(f ...*Favourites) *UserUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uu.AddFavouriteIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uu *UserUpdate) Mutation() *UserMutation {
 	return uu.mutation
+}
+
+// ClearFavourites clears all "favourites" edges to the Favourites entity.
+func (uu *UserUpdate) ClearFavourites() *UserUpdate {
+	uu.mutation.ClearFavourites()
+	return uu
+}
+
+// RemoveFavouriteIDs removes the "favourites" edge to Favourites entities by IDs.
+func (uu *UserUpdate) RemoveFavouriteIDs(ids ...int) *UserUpdate {
+	uu.mutation.RemoveFavouriteIDs(ids...)
+	return uu
+}
+
+// RemoveFavourites removes "favourites" edges to Favourites entities.
+func (uu *UserUpdate) RemoveFavourites(f ...*Favourites) *UserUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uu.RemoveFavouriteIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -331,6 +368,60 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldEmail,
 		})
 	}
+	if uu.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.RemovedFavouritesIDs(); len(nodes) > 0 && !uu.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uu.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, uu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{user.Label}
@@ -470,9 +561,45 @@ func (uuo *UserUpdateOne) SetEmail(s string) *UserUpdateOne {
 	return uuo
 }
 
+// AddFavouriteIDs adds the "favourites" edge to the Favourites entity by IDs.
+func (uuo *UserUpdateOne) AddFavouriteIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.AddFavouriteIDs(ids...)
+	return uuo
+}
+
+// AddFavourites adds the "favourites" edges to the Favourites entity.
+func (uuo *UserUpdateOne) AddFavourites(f ...*Favourites) *UserUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uuo.AddFavouriteIDs(ids...)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (uuo *UserUpdateOne) Mutation() *UserMutation {
 	return uuo.mutation
+}
+
+// ClearFavourites clears all "favourites" edges to the Favourites entity.
+func (uuo *UserUpdateOne) ClearFavourites() *UserUpdateOne {
+	uuo.mutation.ClearFavourites()
+	return uuo
+}
+
+// RemoveFavouriteIDs removes the "favourites" edge to Favourites entities by IDs.
+func (uuo *UserUpdateOne) RemoveFavouriteIDs(ids ...int) *UserUpdateOne {
+	uuo.mutation.RemoveFavouriteIDs(ids...)
+	return uuo
+}
+
+// RemoveFavourites removes "favourites" edges to Favourites entities.
+func (uuo *UserUpdateOne) RemoveFavourites(f ...*Favourites) *UserUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uuo.RemoveFavouriteIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -678,6 +805,60 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Value:  value,
 			Column: user.FieldEmail,
 		})
+	}
+	if uuo.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.RemovedFavouritesIDs(); len(nodes) > 0 && !uuo.mutation.FavouritesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := uuo.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: uuo.config}
 	_spec.Assign = _node.assignValues

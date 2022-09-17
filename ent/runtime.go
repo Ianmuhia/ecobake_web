@@ -8,6 +8,7 @@ package ent
 
 import (
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/product"
 	"ecobake/ent/schema"
 	"ecobake/ent/user"
@@ -32,6 +33,12 @@ func init() {
 	categoryDescIcon := categoryFields[4].Descriptor()
 	// category.IconValidator is a validator for the "icon" field. It is called by the builders before save.
 	category.IconValidator = categoryDescIcon.Validators[0].(func(string) error)
+	favouritesFields := schema.Favourites{}.Fields()
+	_ = favouritesFields
+	// favouritesDescCreatedAt is the schema descriptor for created_at field.
+	favouritesDescCreatedAt := favouritesFields[0].Descriptor()
+	// favourites.DefaultCreatedAt holds the default value on creation for the created_at field.
+	favourites.DefaultCreatedAt = favouritesDescCreatedAt.Default.(time.Time)
 	productFields := schema.Product{}.Fields()
 	_ = productFields
 	// productDescName is the schema descriptor for name field.

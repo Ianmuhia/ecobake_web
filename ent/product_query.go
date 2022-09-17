@@ -8,7 +8,9 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/predicate"
 	"ecobake/ent/product"
 	"fmt"
@@ -22,14 +24,15 @@ import (
 // ProductQuery is the builder for querying Product entities.
 type ProductQuery struct {
 	config
-	limit        *int
-	offset       *int
-	unique       *bool
-	order        []OrderFunc
-	fields       []string
-	predicates   []predicate.Product
-	withCategory *CategoryQuery
-	withFKs      bool
+	limit          *int
+	offset         *int
+	unique         *bool
+	order          []OrderFunc
+	fields         []string
+	predicates     []predicate.Product
+	withCategory   *CategoryQuery
+	withFavourites *FavouritesQuery
+	withFKs        bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -81,6 +84,28 @@ func (pq *ProductQuery) QueryCategory() *CategoryQuery {
 			sqlgraph.From(product.Table, product.FieldID, selector),
 			sqlgraph.To(category.Table, category.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, product.CategoryTable, product.CategoryColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFavourites chains the current query on the "favourites" edge.
+func (pq *ProductQuery) QueryFavourites() *FavouritesQuery {
+	query := &FavouritesQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(product.Table, product.FieldID, selector),
+			sqlgraph.To(favourites.Table, favourites.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, product.FavouritesTable, product.FavouritesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -264,12 +289,13 @@ func (pq *ProductQuery) Clone() *ProductQuery {
 		return nil
 	}
 	return &ProductQuery{
-		config:       pq.config,
-		limit:        pq.limit,
-		offset:       pq.offset,
-		order:        append([]OrderFunc{}, pq.order...),
-		predicates:   append([]predicate.Product{}, pq.predicates...),
-		withCategory: pq.withCategory.Clone(),
+		config:         pq.config,
+		limit:          pq.limit,
+		offset:         pq.offset,
+		order:          append([]OrderFunc{}, pq.order...),
+		predicates:     append([]predicate.Product{}, pq.predicates...),
+		withCategory:   pq.withCategory.Clone(),
+		withFavourites: pq.withFavourites.Clone(),
 		// clone intermediate query.
 		sql:    pq.sql.Clone(),
 		path:   pq.path,
@@ -285,6 +311,17 @@ func (pq *ProductQuery) WithCategory(opts ...func(*CategoryQuery)) *ProductQuery
 		opt(query)
 	}
 	pq.withCategory = query
+	return pq
+}
+
+// WithFavourites tells the query-builder to eager-load the nodes that are connected to
+// the "favourites" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *ProductQuery) WithFavourites(opts ...func(*FavouritesQuery)) *ProductQuery {
+	query := &FavouritesQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withFavourites = query
 	return pq
 }
 
@@ -357,8 +394,9 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 		nodes       = []*Product{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			pq.withCategory != nil,
+			pq.withFavourites != nil,
 		}
 	)
 	if pq.withCategory != nil {
@@ -391,6 +429,12 @@ func (pq *ProductQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Prod
 			return nil, err
 		}
 	}
+	if query := pq.withFavourites; query != nil {
+		if err := pq.loadFavourites(ctx, query, nodes, nil,
+			func(n *Product, e *Favourites) { n.Edges.Favourites = e }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
 }
 
@@ -420,6 +464,34 @@ func (pq *ProductQuery) loadCategory(ctx context.Context, query *CategoryQuery, 
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (pq *ProductQuery) loadFavourites(ctx context.Context, query *FavouritesQuery, nodes []*Product, init func(*Product), assign func(*Product, *Favourites)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Product)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Favourites(func(s *sql.Selector) {
+		s.Where(sql.InValues(product.FavouritesColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.product_favourites
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "product_favourites" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "product_favourites" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

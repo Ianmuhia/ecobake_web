@@ -8,6 +8,7 @@ package ent
 
 import (
 	"context"
+	"ecobake/ent/favourites"
 	"ecobake/ent/user"
 	"errors"
 	"fmt"
@@ -124,6 +125,21 @@ func (uc *UserCreate) SetNillableProfileImage(s *string) *UserCreate {
 func (uc *UserCreate) SetEmail(s string) *UserCreate {
 	uc.mutation.SetEmail(s)
 	return uc
+}
+
+// AddFavouriteIDs adds the "favourites" edge to the Favourites entity by IDs.
+func (uc *UserCreate) AddFavouriteIDs(ids ...int) *UserCreate {
+	uc.mutation.AddFavouriteIDs(ids...)
+	return uc
+}
+
+// AddFavourites adds the "favourites" edges to the Favourites entity.
+func (uc *UserCreate) AddFavourites(f ...*Favourites) *UserCreate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return uc.AddFavouriteIDs(ids...)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -345,6 +361,25 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldEmail,
 		})
 		_node.Email = value
+	}
+	if nodes := uc.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.FavouritesTable,
+			Columns: []string{user.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

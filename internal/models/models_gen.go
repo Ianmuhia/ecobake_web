@@ -179,7 +179,7 @@ type Product struct {
 	Description string   `json:"description"`
 	Ingredients string   `json:"ingredients"`
 	TotalRating float64  `json:"totalRating"`
-	Images      []*File  `json:"images"`
+	Images      []string `json:"images"`
 	CreatedAt   string   `json:"created_at"`
 	UpdatedAt   string   `json:"updated_at"`
 }
@@ -187,6 +187,16 @@ type Product struct {
 type ProductCreateResponse struct {
 	Errors  []ProductErrorCode `json:"errors"`
 	Product Product            `json:"product"`
+}
+
+type ProductResponse struct {
+	Products *Product              `json:"products"`
+	Errors   []ListEntityErrorCode `json:"errors"`
+}
+
+type Products struct {
+	Products []*Product            `json:"products"`
+	Errors   []ListEntityErrorCode `json:"errors"`
 }
 
 type RefreshToken struct {
@@ -210,6 +220,17 @@ type SetPassword struct {
 	RefreshToken *string         `json:"refreshToken"`
 	User         *User           `json:"user"`
 	Errors       []*AccountError `json:"errors"`
+}
+
+type UpdateProduct struct {
+	ID                   int               `json:"id"`
+	Name                 string            `json:"name"`
+	Price                string            `json:"price"`
+	Category             int               `json:"category"`
+	Description          string            `json:"description"`
+	Ingredients          string            `json:"ingredients"`
+	Images               []*graphql.Upload `json:"images"`
+	AvailableForPurchase string            `json:"availableForPurchase"`
 }
 
 type UploadError struct {

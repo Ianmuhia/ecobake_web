@@ -9,6 +9,7 @@ package ent
 import (
 	"context"
 	"ecobake/ent/category"
+	"ecobake/ent/favourites"
 	"ecobake/ent/product"
 	"errors"
 	"fmt"
@@ -128,6 +129,25 @@ func (pc *ProductCreate) SetNillableCategoryID(id *int) *ProductCreate {
 // SetCategory sets the "category" edge to the Category entity.
 func (pc *ProductCreate) SetCategory(c *Category) *ProductCreate {
 	return pc.SetCategoryID(c.ID)
+}
+
+// SetFavouritesID sets the "favourites" edge to the Favourites entity by ID.
+func (pc *ProductCreate) SetFavouritesID(id int) *ProductCreate {
+	pc.mutation.SetFavouritesID(id)
+	return pc
+}
+
+// SetNillableFavouritesID sets the "favourites" edge to the Favourites entity by ID if the given value is not nil.
+func (pc *ProductCreate) SetNillableFavouritesID(id *int) *ProductCreate {
+	if id != nil {
+		pc = pc.SetFavouritesID(*id)
+	}
+	return pc
+}
+
+// SetFavourites sets the "favourites" edge to the Favourites entity.
+func (pc *ProductCreate) SetFavourites(f *Favourites) *ProductCreate {
+	return pc.SetFavouritesID(f.ID)
 }
 
 // Mutation returns the ProductMutation object of the builder.
@@ -381,6 +401,25 @@ func (pc *ProductCreate) createSpec() (*Product, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.category_product = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.FavouritesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   product.FavouritesTable,
+			Columns: []string{product.FavouritesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: favourites.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

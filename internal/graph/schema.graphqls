@@ -34,37 +34,34 @@ type File {
 # Requires one of the following permissions: AUTHENTICATED_APP, AUTHENTICATED_STAFF_USER.
 type FileUpload {
     uploadedFile: File
-
     errors: [UploadError!]!
 }
-
-type Query {
-    users: Users! @goField(forceResolver: true) @auth
-    categories: Categories
-}
-
 
 #"The `UploadFile` type, represents the request for uploading a file with a certain payload."
 input UploadFile {
     file: Upload!
 }
 
+type Query {
+    users: Users! @goField(forceResolver: true) @auth
+    categories: Categories
+    products:Products
+    favouriteProducts:Products
+    product(input:Int!):ProductResponse
+    productByCategory(input:Int!):Products
+}
 
-
-
-"The `Mutation` type, represents all updates we can make to our data."
-#type Mutation {
-#    multipleUpload(req: [UploadFile!]!): [File!]!
-#}
+#"The `Mutation` type, represents all updates we can make to our data."
 type Mutation {
     createUser(input:NewUser!):AccountRegister
     createCategory(input:CreateCategory!):Category
     updateCategory(input:CreateCategory!):Category
     deleteCategory(input:Int!):Boolean! @hasRole(role: ADMIN)
     createProduct(input:NewProduct):ProductCreateResponse
-
-
-
+    updateProduct(input:UpdateProduct):ProductCreateResponse
+    deleteProduct(input:Int!):Boolean! @hasRole(role: ADMIN)
+    deleteFavourite(input:Int!):Boolean!
+    addFavourite(input:Int!):ProductResponse
 
     # Create JWT token.
     tokenCreate(
@@ -189,7 +186,6 @@ type Mutation {
 
 }
 
-
 type Subscription {
     userCreated: User!
 }
@@ -217,7 +213,7 @@ type Product {
     description: String!
     ingredients: String!
     totalRating:Float!
-    images:[File!]!
+    images:[String!]!
     created_at: String!
     updated_at: String!
 
@@ -225,6 +221,16 @@ type Product {
 
 
 input NewProduct{
+    name: String!
+    price: String!
+    category:Int!
+    description: String!
+    ingredients: String!
+    images:[Upload!]!
+    availableForPurchase:DateTime!
+}
+input UpdateProduct{
+    id:Int!
     name: String!
     price: String!
     category:Int!
@@ -257,6 +263,17 @@ type Category {
 
 type Categories {
     categories :[Category]
+    errors: [ListEntityErrorCode!]!
+
+}
+
+type Products {
+    products :[Product]
+    errors: [ListEntityErrorCode!]!
+
+}
+type ProductResponse {
+    products :Product
     errors: [ListEntityErrorCode!]!
 
 }

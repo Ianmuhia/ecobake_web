@@ -36,5 +36,8 @@ func (Product) Edges() []ent.Edge {
 			OnDelete: entsql.Cascade,
 		}).Ref("product").
 			Unique(),
+		edge.To("favourites", Favourites.Type).Annotations(entsql.Annotation{
+			OnDelete: entsql.Cascade,
+		}).Unique(),
 	}
 }

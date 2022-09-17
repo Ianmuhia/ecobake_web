@@ -106,6 +106,15 @@ services:
     command:
       - 'server'
 
+  ecobacke:
+    image: go-example:latest
+    restart: always
+    command: "-c=/config/config.toml"
+    ports:
+      - '8090:8090'
+      - '8080:8080'
+    volumes:
+      - ./config/:/config
 
 
 volumes:

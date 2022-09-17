@@ -1,7 +1,12 @@
 
 VERSION 0.6
 FROM golang:1.19-alpine
+RUN apk --update --no-cache add git
 WORKDIR /go-example
+
+all:
+    BUILD +build
+    BUILD +docker
 
 build:
     COPY go.mod go.sum .
