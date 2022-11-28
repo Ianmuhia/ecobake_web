@@ -1,7 +1,6 @@
 package services
 
 import (
-	"ecobake/cmd/config"
 	"ecobake/internal/models"
 	"errors"
 	"fmt"
@@ -21,14 +20,13 @@ type TokenService interface {
 
 type tokenService struct {
 	secretKey string
-	cfg       *config.AppConfig
 }
 
-func NewTokenService(secretKey string, cfg *config.AppConfig) (*tokenService, error) {
+func NewTokenService(secretKey string) (*tokenService, error) {
 	if len(secretKey) < minSecretKeySize {
 		return nil, fmt.Errorf("invalid key size: must be at least %d characters", minSecretKeySize)
 	}
-	return &tokenService{secretKey: secretKey, cfg: cfg}, nil
+	return &tokenService{secretKey: secretKey}, nil
 }
 
 // Different types of error returned by the VerifyToken function.
@@ -64,7 +62,7 @@ func (maker *tokenService) CreateToken(username string, email string, duration t
 
 // VerifyToken checks if the token is valid or not.
 func (maker *tokenService) VerifyToken(token string) (*models.Payload, error) {
-	keyFunc := func(token *jwt.Token) (interface{}, error) {
+	keyFunc := func(token *jwt.Token) (any, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
 			return nil, ErrInvalidToken

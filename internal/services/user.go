@@ -1,27 +1,21 @@
 package services
 
 import (
-	"bytes"
 	"context"
 	"ecobake/cmd/config"
 	"ecobake/ent"
 	user2 "ecobake/ent/user"
 	"ecobake/internal/models"
-	"ecobake/internal/postgresql/db"
-	"encoding/gob"
 	"fmt"
-	"log"
-	"time"
 )
 
 type usersService struct {
-	q      *db.Queries
 	cfg    *config.AppConfig
 	client *ent.Client
 }
 
-func NewUsersService(q db.DBTX, cfg *config.AppConfig, client *ent.Client) *usersService {
-	return &usersService{q: db.New(q), cfg: cfg, client: client}
+func NewUsersService(cfg *config.AppConfig, client *ent.Client) *usersService {
+	return &usersService{cfg: cfg, client: client}
 }
 
 type UsersService interface {
@@ -31,15 +25,12 @@ type UsersService interface {
 	UpdateUserStatus(context.Context, string) (*models.User, error)
 	UpdateUserImage(ctx context.Context, email, imageName string) (*models.User, error)
 	GetAllUsers(ctx context.Context) (int, []*models.User, error)
-	VerifyPasswordResetCode(key string) VerificationData
 	UpdateUserDetails(context.Context, int64, *models.User) (*models.User, error)
 	UpdateUserPassword(context.Context, int64, string) error
 	DeleteUser(context.Context, int64) error
-	CleanDB()
 }
 
 func (us *usersService) CreateUser(ctx context.Context, user models.User) (*models.User, error) {
-
 	data, err := us.client.User.
 		Create().
 		SetEmail(user.Email).
@@ -52,29 +43,25 @@ func (us *usersService) CreateUser(ctx context.Context, user models.User) (*mode
 		return new(models.User), err
 	}
 	return &models.User{
-		ID:           int(data.ID),
+		ID:           data.ID,
 		CreatedAt:    data.CreatedAt.String(),
 		PhoneNumber:  data.PhoneNumber,
 		Email:        data.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, data.ProfileImage),
 	}, nil
-
 }
 func (us *usersService) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	user, err := us.client.User.Query().Where(user2.Email(email)).Where(user2.IsVerified(false)).Only(ctx)
 	if err != nil {
-		return new(models.User), err
+		return nil, err
 	}
 	return &models.User{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt.String(),
-		//PasswordHash: user.PasswordHash,
-		//UserName:     user.UserName,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt.String(),
 		Password:     user.PasswordHash,
 		PhoneNumber:  user.PhoneNumber,
 		Email:        user.Email,
 		ProfileImage: fmt.Sprintf("%s/%s/%s", us.cfg.StorageURL.String(), us.cfg.StorageBucket, user.ProfileImage),
-		//IsVerified:   user.IsVerified,
 	}, nil
 }
 
@@ -100,10 +87,10 @@ func (us *usersService) GetUserByID(ctx context.Context, id int64) (*models.User
 
 }
 func (us *usersService) DeleteUser(ctx context.Context, id int64) error {
-	err := us.q.DeleteUser(ctx, id)
-	if err != nil {
-		return err
-	}
+	// err := us.q.DeleteUser(ctx, id)
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
 }
 func (us *usersService) GetAllUsers(ctx context.Context) (int, []*models.User, error) {
@@ -198,36 +185,4 @@ func (us *usersService) UpdateUserPassword(ctx context.Context, id int64, newPas
 		return err
 	}
 	return nil
-}
-func (us *usersService) VerifyPasswordResetCode(key string) VerificationData {
-	var a VerificationData
-
-	data := us.cfg.RedisConn.Get(context.TODO(), key)
-	cmdb, err := data.Bytes()
-	if err != nil {
-		log.Println(err)
-		return a
-	}
-	b := bytes.NewReader(cmdb)
-	if err := gob.NewDecoder(b).Decode(&a); err != nil {
-		log.Println(err)
-		return a
-	}
-	return a
-}
-func (us *usersService) GetRefreshToken(key string) string {
-	data, err := us.cfg.RedisConn.Get(context.TODO(), key).Result()
-	if err != nil {
-		log.Println(err)
-		return ""
-	}
-
-	return data
-}
-func (us *usersService) CleanDB() {
-	go func() {
-		for now := range time.Tick(time.Second) {
-			fmt.Println(now)
-		}
-	}()
 }

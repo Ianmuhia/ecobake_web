@@ -4,21 +4,9 @@ import (
 	"context"
 	"ecobake/cmd/config"
 	"ecobake/cmd/internal"
-	"ecobake/ent"
-	"ecobake/internal/controllers"
-	"ecobake/internal/graph"
-	"ecobake/internal/graph/generated"
-	"ecobake/internal/models"
 	"ecobake/internal/services"
 	"flag"
 	"fmt"
-	"github.com/99designs/gqlgen/graphql"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/lru"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"os"
@@ -30,11 +18,8 @@ import (
 )
 
 type Config struct {
-	Output   output
 	Database database
 	Minio    minio
-	Secrets  secrets
-	Redis    redis
 	Server   server
 }
 
@@ -54,25 +39,9 @@ type minio struct {
 	Password string
 }
 
-type redis struct {
-	Server string
-	Port   string
-	DB     int
-}
-
 type server struct {
 	Address string
 	Port    string
-}
-
-type output struct {
-	Directory string
-	Format    string
-}
-
-type secrets struct {
-	TTL int
-	Jwt string
 }
 
 func initConfig(logger *log.Logger) (Config, error) {
@@ -80,19 +49,17 @@ func initConfig(logger *log.Logger) (Config, error) {
 	wordPtr := flag.String("c", ".", "config file location")
 	flag.Parse()
 	if _, err := toml.DecodeFile(*wordPtr, &conf); err != nil {
-		logger.Println(err)
 		return conf, err
 	}
 	return conf, nil
 }
 
-func StartApplication() {
+func StartApplication() error {
 	// configure logger
 	logger := log.New(os.Stdout, "[ECOBAKE] [DEBUG] ", log.LstdFlags|log.Lshortfile)
 	conf, err := initConfig(logger)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 	minioURL := fmt.Sprintf("%s:%s", conf.Minio.Server, conf.Minio.Port)
 	// Get file storage connection
@@ -103,18 +70,10 @@ func StartApplication() {
 		conf.Minio.Name,
 		logger)
 	if minioErr != nil {
-		logger.Println(minioErr)
-		return
+		return err
 	}
 
 	logger.Printf("mino endpoint is 🍉 %s", minioClient.EndpointURL())
-
-	redisURL := fmt.Sprintf("%s:%s", conf.Redis.Server, conf.Redis.Port)
-
-	redisConn := internal.GetRedisClient(redisURL, conf.Redis.DB, logger)
-
-	searchClient := internal.GetMeiliConn()
-	searchCli := internal.NewMeiliSearch(searchClient)
 
 	pgConn := config.PostgresConn{
 		URL:    conf.Database.Server,
@@ -125,10 +84,7 @@ func StartApplication() {
 	}
 
 	// connect to nats
-	jetStreamContext := internal.GetJetStream("", logger)
 
-	zincChan := make(chan any)
-	zincRcvChan := make(chan any)
 	cfg := config.NewAppConfig(
 		logger,
 		minioClient.EndpointURL(),
@@ -136,174 +92,76 @@ func StartApplication() {
 		20,
 		false,
 		20,
-		redisConn,
-		jetStreamContext,
 		pgConn,
-		zincChan,
-		zincRcvChan,
 	)
-
-	pgPool, err := internal.NewPostgreSQL(pgConn)
-	if err != nil {
-		logger.Println(err)
-		return
-	}
-	defer pgPool.Close()
-	logger.Println(err)
-
 	// initiate services
 	client, err := internal.EntConn(pgConn)
 	if err != nil {
-		logger.Fatal(err)
+		return err
 	}
-	mailService := services.NewMailService()
 	storageService := services.NewFileStorageService(bucketName, minioClient)
-	userService := services.NewUsersService(pgPool, cfg, client)
-	tokenService, err := services.NewTokenService(conf.Secrets.Jwt, cfg)
+	userService := services.NewUsersService(cfg, client)
+	categoryService := services.NewCategoriesService(cfg)
+	tokenService, err := services.NewTokenService("12345")
 	if err != nil {
-		logger.Println(err)
-		return
+		return err
 	}
-	natsService := services.NewNatsService(cfg)
-	searchService := services.NewSearchService(cfg, searchCli.MeiliClient)
-	categoryService := services.NewCategoriesService(pgPool, cfg)
-	//paymentService := services.NewPaymentsService(cfg, pgPool)
-
-	allServices := controllers.NewRepo(
-		mailService,
+	allServices := handlers.NewRepo(
 		cfg,
 		storageService,
-		natsService,
 		userService,
 		tokenService,
-		searchService,
 		categoryService,
 		client,
-		//paymentService,
 	)
 
 	r := allServices.SetupRouter()
-
-	//userService.CleanDB()
 	// Run the server
 	Run(
-		client,
 		logger,
 		conf.Server.Port,
 		conf.Server.Address,
 		r,
-		storageService,
-		tokenService,
-		natsService,
-		userService,
-		searchService,
-		categoryService,
 	)
-
+	return nil
 }
 
 func Run(
-	client *ent.Client,
 	logger *log.Logger,
 	port string,
 	address string,
 	r http.Handler,
-	storageService services.FileStorageService,
-	tokenService services.TokenService,
-	natsService services.NatsService,
-	userService services.UsersService,
-	searchService services.SearchService,
-	categoryService services.CategoriesService,
+
 ) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	userChan := make(chan models.User)
-	resolver := graph.NewResolver(
-		userChan,
-		client,
-		storageService,
-		natsService,
-		userService,
-		tokenService,
-		searchService,
-		categoryService,
-	)
-	//https://github.com/zenyui/gqlgen-dataloader/blob/main/graph/dataloader/dataloader.go
-
-	//httpServerURL := fmt.Sprintf("%s:%s", conf.Server.Address, conf.Server.Port)
-	c := generated.Config{Resolvers: resolver, Directives: struct {
-		Auth    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
-		HasRole func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error)
-	}{Auth: func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error) {
-		return nil, err
-
-	}, HasRole: func(ctx context.Context, obj interface{}, next graphql.Resolver, role models.Role) (res interface{}, err error) {
-		return nil, err
-	}}}
-	//c.Directives.Auth = directives.Auth
-	gsrv := handler.NewDefaultServer(generated.NewExecutableSchema(c))
-
-	// Configure WebSocket with CORS
-	gsrv.AddTransport(&transport.Websocket{
-		Upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool {
-				return true
-			},
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		},
-
-		KeepAlivePingInterval: 1 * time.Second,
-		PingPongInterval:      1 * time.Second,
-	})
-
-	gsrv.AddTransport(transport.Options{})
-	gsrv.AddTransport(transport.Websocket{})
-	gsrv.AddTransport(transport.GET{})
-	gsrv.AddTransport(transport.POST{})
-	gsrv.AddTransport(transport.MultipartForm{})
-	gsrv.SetQueryCache(lru.New(1000))
-	gsrv.Use(extension.Introspection{})
-	gsrv.Use(extension.AutomaticPersistedQuery{
-		Cache: lru.New(100),
-	})
 
 	srvURL := fmt.Sprintf("%s:%s", address, port)
 
 	srv := &http.Server{
-		Addr:     srvURL,
-		Handler:  r,
-		ErrorLog: logger,
+		Addr:              srvURL,
+		Handler:           r,
+		ErrorLog:          logger,
+		ReadTimeout:       2 * time.Second,
+		WriteTimeout:      2 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
 	}
 
 	// Initializing the server in a goroutine so that
 	// it won't block the graceful shutdown handling below
-
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatalf("listen: %s\n", err)
 
 		}
 	}()
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", handler.NewDefaultServer(generated.NewExecutableSchema(c)))
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", "8080")
-	// Listen for the interrupt signal.
-	<-ctx.Done()
-
-	go func() {
-		log.Fatal(http.ListenAndServe(":8080", nil))
-	}()
-
 	// Restore default behavior on the interrupt signal and notify user of shutdown.
 	stop()
 	logger.Println("shutting down gracefully, press Ctrl+C again to force")
-
 	// The context is used to inform the server it has 5 seconds to finish
 	// the request it is currently handling
 	etime := time.Second * 5
-	ctx, cancel := context.WithTimeout(context.Background(), etime)
+	ctx, cancel := context.WithTimeout(ctx, etime)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		logger.Fatal("Server forced to shutdown: ", err)

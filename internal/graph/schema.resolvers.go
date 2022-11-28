@@ -4,7 +4,6 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
-	"bytes"
 	"context"
 	"ecobake/ent"
 	"ecobake/ent/category"
@@ -13,10 +12,7 @@ import (
 	"ecobake/ent/user"
 	"ecobake/internal/graph/generated"
 	"ecobake/internal/models"
-	"ecobake/internal/services"
 	"ecobake/pkg/randomcode"
-	"encoding/gob"
-	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -415,61 +411,34 @@ func (r *mutationResolver) TokensDeactivateAll(ctx context.Context) (*models.Dea
 
 // RequestPasswordReset is the resolver for the requestPasswordReset field.
 func (r *mutationResolver) RequestPasswordReset(ctx context.Context, email string) (*models.RequestPasswordReset, error) {
-	user, err := r.UserService.GetUserByEmail(ctx, email)
-	if err != nil {
-		return &models.RequestPasswordReset{Errors: []*models.AccountError{{
-			Field:   "user",
-			Message: "provide a valid email or create account to continue",
-			Code:    models.AccountErrorCodeNotFound,
-		}}}, nil
-	}
+	// user, err := r.UserService.GetUserByEmail(ctx, email)
+	// if err != nil {
+	// 	return &models.RequestPasswordReset{Errors: []*models.AccountError{{
+	// 		Field:   "user",
+	// 		Message: "provide a valid email or create account to continue",
+	// 		Code:    models.AccountErrorCodeNotFound,
+	// 	}}}, nil
+	// }
 
-	// Send verification mail.
-	from := "me@gmail.com"
-	to := user.Email
-	subject := "Password Reset for User"
+	// // store the password reset code to db
+	// verificationData := &services.VerificationData{
+	// 	Email:     user.Email,
+	// 	Code:      mailData.Code,
+	// 	Type:      string(rune(services.PassReset)),
+	// 	ExpiresAt: time.Now().Add(time.Minute * time.Duration(10)),
+	// }
 
-	mailType := services.PassReset
-	mailData := &services.MailData{
-		Username: user.Email,
-		Code:     randomcode.Code(7),
-	}
-	mailReq := &services.Mail{
-		From:     from,
-		To:       to,
-		Subject:  subject,
-		Body:     mailData,
-		MailType: mailType,
-	}
-
-	v, _ := json.Marshal(mailReq)
-	err = r.NatService.Publish("Mail.Verification", v)
-	if err != nil {
-		return &models.RequestPasswordReset{
-			Errors:     nil,
-			NatsErrors: models.NatsErrorCodesErrAccountExists,
-		}, nil
-	}
-
-	// store the password reset code to db
-	verificationData := &services.VerificationData{
-		Email:     user.Email,
-		Code:      mailData.Code,
-		Type:      string(rune(services.PassReset)),
-		ExpiresAt: time.Now().Add(time.Minute * time.Duration(10)),
-	}
-
-	var b bytes.Buffer
-	if err := gob.NewEncoder(&b).Encode(verificationData); err != nil {
-		return &models.RequestPasswordReset{
-			Errors: []*models.AccountError{{
-				Field:   "password.Reset",
-				Message: "Unable to send password reset code. Please try again later",
-				Code:    models.AccountErrorCodeGraphqlError,
-			}},
-			NatsErrors: "",
-		}, nil
-	}
+	// var b bytes.Buffer
+	// if err := gob.NewEncoder(&b).Encode(verificationData); err != nil {
+	// 	return &models.RequestPasswordReset{
+	// 		Errors: []*models.AccountError{{
+	// 			Field:   "password.Reset",
+	// 			Message: "Unable to send password reset code. Please try again later",
+	// 			Code:    models.AccountErrorCodeGraphqlError,
+	// 		}},
+	// 		NatsErrors: "",
+	// 	}, nil
+	// }
 
 	//err = r.app.RedisConn.Set(ctx, verificationData.Email, b.Bytes(), time.Minute*time.Duration(r.app.PasswordResetCodeExpiry)).Err()
 	//if err != nil {
@@ -516,7 +485,17 @@ func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword strin
 		}, nil
 	}
 	u, err := r.UserService.GetUserByID(ctx, payload.ID)
-
+	if err != nil {
+		return &models.PasswordChange{
+			Errors: []*models.AccountError{
+				{
+					Field:   "refresh token ",
+					Message: "provided token has expired",
+					Code:    models.AccountErrorCodeJwtInvalidToken,
+				},
+			},
+		}, nil
+	}
 	ok := randomcode.CheckPasswordHash(oldPassword, u.Password)
 	if !ok {
 		return &models.PasswordChange{
@@ -529,21 +508,19 @@ func (r *mutationResolver) PasswordChange(ctx context.Context, newPassword strin
 		}, nil
 	}
 
-	PasswordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.MinCost)
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.MinCost)
 	if err != nil {
-		if err != nil {
-			return &models.PasswordChange{
-				User: nil,
-				Errors: []*models.AccountError{{
-					Field:   "user.Password",
-					Message: "error occurred",
-					Code:    models.AccountErrorCodeGraphqlError,
-				}},
-			}, nil
-		}
+		return &models.PasswordChange{
+			User: nil,
+			Errors: []*models.AccountError{{
+				Field:   "user.Password",
+				Message: "error occurred",
+				Code:    models.AccountErrorCodeGraphqlError,
+			}},
+		}, nil
 	}
 
-	err = r.UserService.UpdateUserPassword(ctx, payload.ID, string(PasswordHash))
+	err = r.UserService.UpdateUserPassword(ctx, payload.ID, string(passwordHash))
 	if err != nil {
 
 		return &models.PasswordChange{

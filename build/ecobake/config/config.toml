@@ -1,0 +1,31 @@
+[database]
+server = "192.168.1.67"
+port = "5432"
+database = "ecobake"
+user = "rvtn"
+password = "rvtn"
+
+[server]
+address = "192.168.1.67"
+port = "8090"
+
+[redis]
+server = "192.168.1.67"
+port = "6379"
+db = 1
+
+[minio]
+user = "minioadmin"
+password = "minioadmin"
+server = "localhost"
+port = "9000"
+name = "rvtn"
+
+[secrets]
+ttl = 20
+jwt = "0ff00fe355a24e790512"
+
+
+[output]
+directory = "./output"
+format = "toml"

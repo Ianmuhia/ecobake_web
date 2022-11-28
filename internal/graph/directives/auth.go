@@ -2,26 +2,25 @@ package directives
 
 import (
 	"context"
-	"ecobake/pkg/randomcode"
+
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/vektah/gqlparser/v2/gqlerror"
-	"log"
 )
 
-func Auth(ctx context.Context, obj interface{}, next graphql.Resolver) (interface{}, error) {
-	gc, _ := randomcode.GinContextFromContext(ctx)
-	log.Println(obj)
-	tokenData, _ := gc.Get("authorization_payload")
-	if tokenData == nil {
-		return nil, &gqlerror.Error{
-			Message: "Access Denied",
-		}
-	}
+func Auth(ctx context.Context, obj any, next graphql.Resolver) (any, error) {
+	//TODO: rework this.
+	// gc, _ := randomcode.GinContextFromContext(ctx)
+	// log.Println(obj)
+	// tokenData, _ := gc.Get("authorization_payload")
+	// if tokenData == nil {
+	// 	return nil, &gqlerror.Error{
+	// 		Message: "Access Denied",
+	// 	}
+	// }
 
 	return next(ctx)
 }
 
-//func GinContextFromContext(ctx context.Context) (*gin.Context, error) {
+// func GinContextFromContext(ctx context.Context) (*gin.Context, error) {
 //	ginContext := ctx.Value("GinContextKey")
 //	if ginContext == nil {
 //		err := fmt.Errorf("could not retrieve gin.Context")

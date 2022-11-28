@@ -3,9 +3,6 @@ package config
 import (
 	"log"
 	"net/url"
-
-	"github.com/go-redis/redis/v8"
-	"github.com/nats-io/nats.go"
 )
 
 type AppConfig struct {
@@ -16,10 +13,6 @@ type AppConfig struct {
 	PasswordResetCodeExpiry int
 	InProduction            bool
 	TokenLifeTime           int
-	RedisConn               *redis.Client
-	Js                      nats.JetStreamContext
-	ZincChan                chan any
-	ZincRcvChan             chan any
 }
 
 func NewAppConfig(
@@ -29,11 +22,7 @@ func NewAppConfig(
 	passwordResetCodeExpiry int,
 	inProduction bool,
 	tokenLifeTime int,
-	redisConn *redis.Client,
-	js nats.JetStreamContext,
 	postgresConn PostgresConn,
-	zincChan chan any,
-	zincRcvChan chan any,
 
 ) *AppConfig {
 	return &AppConfig{
@@ -43,11 +32,7 @@ func NewAppConfig(
 		PasswordResetCodeExpiry: passwordResetCodeExpiry,
 		InProduction:            inProduction,
 		TokenLifeTime:           tokenLifeTime,
-		RedisConn:               redisConn,
-		Js:                      js,
 		PostgresConn:            postgresConn,
-		ZincChan:                zincChan,
-		ZincRcvChan:             zincRcvChan,
 	}
 }
 
@@ -57,10 +42,4 @@ type PostgresConn struct {
 	DBUser string
 	DBPass string
 	Port   string
-}
-
-type ZincIndexes struct {
-	Users      string
-	Ventures   string
-	Businesses string
 }
